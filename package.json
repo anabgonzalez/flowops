@@ -2,9 +2,9 @@
   "name": "flowops",
   "version": "1.0.0",
   "description": "FlowOps is a streamlined internal command center built for small service businesses and field teams. It helps manage jobs, quotes, customer updates, and follow-ups — all from a simple, intuitive interface.",
-  "main": "index.js",
+  "main": "server/server.js",
   "scripts": {
-    "dev": "nodemon server/server.js"
+    "dev": "nodemon server.js"
   },
   "type": "module",
   "keywords": [],
@@ -14,7 +14,9 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "mongodb": "^6.16.0",
-    "mongoose": "^8.15.0",
+    "mongoose": "^8.15.0"
+  },
+  "devDependencies": {
     "nodemon": "^3.1.10"
   }
 }

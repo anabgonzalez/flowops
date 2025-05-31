@@ -6,7 +6,7 @@ import jobRoutes from "./routes/job.route.js"
 dotenv.config()
 
 const app = express();
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 5002
 
 app.use(express.json()); // allows us to accept JSON data in the req.body
 
