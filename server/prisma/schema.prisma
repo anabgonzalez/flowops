@@ -1,0 +1,12 @@
+// FlowOps data model. See docs/PRODUCT_PLAN.md for the entities this
+// will grow to cover (Customer, Location, Job, Appointment, Estimate,
+// Invoice, PricebookItem, ...).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

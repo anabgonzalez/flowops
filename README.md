@@ -7,26 +7,28 @@ See [`docs/PRODUCT_PLAN.md`](docs/PRODUCT_PLAN.md) for the full feature breakdow
 ## Tech stack
 
 - **Frontend:** React + Vite + TypeScript + Tailwind CSS (`client/`)
-- **Backend:** Node.js + Express + TypeScript + Mongoose (`server/`)
-- **Database:** MongoDB
+- **Backend:** Node.js + Express + TypeScript (`server/`)
+- **Database:** PostgreSQL, via Prisma ORM (chosen over MongoDB/Mongoose — this domain is relational: Customer → Location → Job → Appointment → Estimate → Invoice, with heavy reporting/aggregation needs)
 
 ## Getting started
 
 ### Prerequisites
 
 - Node.js v18+
-- A MongoDB connection string (local or Atlas)
+- A PostgreSQL database (local or hosted — e.g. local Postgres, Neon, Supabase, Railway, RDS)
 
 ### Backend
 
 ```bash
 cd server
 npm install
-cp .env.example .env   # fill in MONGO_URI
+cp .env.example .env   # fill in DATABASE_URL
+npx prisma generate
+npx prisma migrate dev # applies migrations, creates the db schema
 npm run dev
 ```
 
-Runs on `http://localhost:5002`. Health check: `GET /api/health`.
+Runs on `http://localhost:5002`. Health check: `GET /api/health` (also verifies the Prisma/Postgres connection).
 
 ### Frontend
 
@@ -45,11 +47,12 @@ flowops/
 ├── docs/
 │   └── PRODUCT_PLAN.md    # feature plan, data model, build phasing
 ├── client/                # React + Vite + TS + Tailwind
-└── server/                # Express + TS + Mongoose
+└── server/                # Express + TS + Prisma
+    ├── prisma/
+    │   └── schema.prisma  # data model — grows with each build phase
     └── src/
-        ├── config/
+        ├── lib/            # prisma client singleton
+        ├── routes/
         ├── controllers/
-        ├── middleware/
-        ├── models/
-        └── routes/
+        └── middleware/
 ```

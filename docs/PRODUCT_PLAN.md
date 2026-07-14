@@ -194,8 +194,10 @@ Payroll & Commissions (4.14) → Financing (4.17) → Accounting Integration (4.
 
 ## 6. Current repo state (as of this doc)
 
-- `server/`: Node + Express + Mongoose, has an initial `Job` model/controller/route
-- `client/`: React + Vite + TailwindCSS
-- No auth, no other entities implemented yet
+- `server/`: Node + Express + TypeScript + Prisma (PostgreSQL), health-check endpoint only
+- `client/`: React + Vite + TypeScript + Tailwind CSS
+- No auth, no domain entities modeled yet
 
-Next step once this plan is approved: define the Mongoose schemas for the Phase 1 entities (Customer, Location, Appointment, Estimate, Invoice, PricebookItem) and scaffold the corresponding API routes.
+Database: PostgreSQL via Prisma, not MongoDB/Mongoose — the domain (Customer → Location → Job → Appointment → Estimate → Invoice, plus reporting/aggregation across all of it) is relational, and Prisma's tooling (migrations, relations, type safety) targets Postgres, not Mongo.
+
+Next step: define the Prisma schema for the Phase 1 entities (Customer, Location, Appointment, Estimate, Invoice, PricebookItem), run the first migration, and scaffold the corresponding API routes.
