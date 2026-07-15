@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { Customer, JobListItem, JobPriority, JobStatus } from '../api/types'
-import { Badge, Button, Card, Input, Label, Select } from '../components/ui'
+import { Badge, Button, Card, Input, Label, priorityAccentClass, Select } from '../components/ui'
 
 const STATUSES: JobStatus[] = ['UNSCHEDULED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED', 'ON_HOLD']
 
@@ -139,10 +139,10 @@ export function JobsPage() {
         <div className="space-y-2">
           {jobs.map((job) => (
             <Link key={job.id} to={`/jobs/${job.id}`}>
-              <Card className="hover:border-slate-400">
+              <Card className={`border-l-4 hover:border-slate-400 ${priorityAccentClass(job.priority)}`}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-medium text-slate-900">{job.jobType}</p>
+                    <p className="font-semibold text-slate-900">{job.jobType}</p>
                     <p className="text-sm text-slate-500">{job.summary}</p>
                     <p className="mt-1 text-sm text-slate-600">
                       {job.location.customer.name} · {job.location.addressLine1}, {job.location.city}
