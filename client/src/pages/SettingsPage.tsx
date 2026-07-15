@@ -12,6 +12,7 @@ export function SettingsPage() {
       <TagsSection category="JOB" title="Job Tags" placeholder="e.g. Warranty" />
       <TagsSection category="CUSTOMER" title="Customer Tags" placeholder="e.g. Member" />
       <TagsSection category="LOCATION" title="Location Tags" placeholder="e.g. Has Dogs" />
+      <DangerZone />
     </div>
   )
 }
@@ -192,6 +193,64 @@ function TagsSection({ category, title, placeholder }: { category: TagCategory; 
           ))}
         </div>
       )}
+    </section>
+  )
+}
+
+function DangerZone() {
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [status, setStatus] = useState<'idle' | 'done' | 'error'>('idle')
+
+  async function handleReset() {
+    try {
+      await api.del('/pricebook')
+      setStatus('done')
+      setShowConfirm(false)
+      setConfirmText('')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <section className="space-y-2 rounded-md border border-red-200 bg-red-50 p-4">
+      <h2 className="font-medium text-red-900">Danger Zone</h2>
+      <p className="text-sm text-red-800">
+        Permanently deletes every pricebook item (Services, Materials, Equipment, Other) and every category and
+        subcategory. This cannot be undone. Existing estimates and invoices are not affected - they keep their own
+        copy of each line item's description and price.
+      </p>
+
+      {!showConfirm ? (
+        <Button variant="danger" onClick={() => setShowConfirm(true)}>
+          Reset Entire Pricebook
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="reset-confirm">
+            Type <span className="font-mono font-semibold">RESET</span> to confirm
+          </Label>
+          <Input id="reset-confirm" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} />
+          <div className="flex gap-2">
+            <Button variant="danger" disabled={confirmText !== 'RESET'} onClick={handleReset}>
+              Permanently Delete Everything
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowConfirm(false)
+                setConfirmText('')
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {status === 'done' && <p className="text-sm font-medium text-emerald-700">Pricebook reset. It's now empty.</p>}
+      {status === 'error' && <p className="text-sm font-medium text-red-700">Something went wrong - nothing was deleted.</p>}
     </section>
   )
 }

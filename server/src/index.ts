@@ -9,6 +9,7 @@ import locationContactRoutes from './routes/locationContact.routes.js'
 import pricebookItemRoutes from './routes/pricebookItem.routes.js'
 import pricebookCategoryRoutes from './routes/pricebookCategory.routes.js'
 import pricebookItemComponentRoutes from './routes/pricebookItemComponent.routes.js'
+import pricebookResetRoutes from './routes/pricebookReset.routes.js'
 import jobTypeRoutes from './routes/jobType.routes.js'
 import tagRoutes from './routes/tag.routes.js'
 import jobRoutes from './routes/job.routes.js'
@@ -29,6 +30,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/locations', locationRoutes)
 app.use('/api/location-contacts', locationContactRoutes)
+app.use('/api/pricebook', pricebookResetRoutes)
 app.use('/api/pricebook-items', pricebookItemRoutes)
 app.use('/api/pricebook-categories', pricebookCategoryRoutes)
 app.use('/api/pricebook-item-components', pricebookItemComponentRoutes)
