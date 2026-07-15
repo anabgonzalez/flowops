@@ -170,6 +170,8 @@ function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: Job
     )
   }
 
+  const primaryContact = job.location.contacts.find((c) => c.isPrimary) ?? job.location.contacts[0]
+
   return (
     <div className="mt-1 flex items-start justify-between">
       <div>
@@ -178,6 +180,12 @@ function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: Job
         <p className="mt-1 text-sm text-slate-600">
           {job.location.customer.name} · {job.location.addressLine1}, {job.location.city}, {job.location.state}
         </p>
+        {primaryContact && (
+          <p className="mt-1 text-sm text-slate-500">
+            On-site: {primaryContact.name}
+            {primaryContact.phone ? ` · ${primaryContact.phone}` : ''}
+          </p>
+        )}
         {job.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {job.tags.map((t) => (

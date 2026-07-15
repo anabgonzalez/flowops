@@ -2,22 +2,28 @@ import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { AppError } from '../utils/AppError.js'
 
+const locationInclude = { tags: true, contacts: true }
+
 export async function listLocationsForCustomer(req: Request, res: Response) {
   const locations = await prisma.location.findMany({
     where: { customerId: req.params.customerId },
+    include: locationInclude,
     orderBy: { createdAt: 'asc' },
   })
   res.json(locations)
 }
 
 export async function getLocation(req: Request, res: Response) {
-  const location = await prisma.location.findUnique({ where: { id: req.params.id } })
+  const location = await prisma.location.findUnique({
+    where: { id: req.params.id },
+    include: locationInclude,
+  })
   if (!location) throw new AppError(404, 'Location not found')
   res.json(location)
 }
 
 export async function createLocation(req: Request, res: Response) {
-  const { addressLine1, addressLine2, city, state, postalCode, notes } = req.body
+  const { addressLine1, addressLine2, city, state, postalCode, notes, tagIds } = req.body
   if (!addressLine1 || !city || !state || !postalCode) {
     throw new AppError(400, 'addressLine1, city, state, and postalCode are required')
   }
@@ -33,16 +39,27 @@ export async function createLocation(req: Request, res: Response) {
       state,
       postalCode,
       notes,
+      tags: tagIds && tagIds.length > 0 ? { connect: tagIds.map((id: string) => ({ id })) } : undefined,
     },
+    include: locationInclude,
   })
   res.status(201).json(location)
 }
 
 export async function updateLocation(req: Request, res: Response) {
-  const { addressLine1, addressLine2, city, state, postalCode, notes } = req.body
+  const { addressLine1, addressLine2, city, state, postalCode, notes, tagIds } = req.body
   const location = await prisma.location.update({
     where: { id: req.params.id },
-    data: { addressLine1, addressLine2, city, state, postalCode, notes },
+    data: {
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      notes,
+      tags: tagIds ? { set: tagIds.map((id: string) => ({ id })) } : undefined,
+    },
+    include: locationInclude,
   })
   res.json(location)
 }

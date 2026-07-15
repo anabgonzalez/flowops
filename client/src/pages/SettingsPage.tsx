@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { JobPriority, JobType, Tag } from '../api/types'
+import type { JobPriority, JobType, Tag, TagCategory } from '../api/types'
 import { Badge, Button, Card, Input, Label, Select, TagChip } from '../components/ui'
 import { TAG_COLORS, tagSwatchClass, type TagColor } from '../components/tagPalette'
 
@@ -9,7 +9,9 @@ export function SettingsPage() {
     <div className="space-y-8">
       <h1 className="text-xl font-semibold text-slate-900">Settings</h1>
       <JobTypesSection />
-      <TagsSection />
+      <TagsSection category="JOB" title="Job Tags" placeholder="e.g. Warranty" />
+      <TagsSection category="CUSTOMER" title="Customer Tags" placeholder="e.g. Member" />
+      <TagsSection category="LOCATION" title="Location Tags" placeholder="e.g. Has Dogs" />
     </div>
   )
 }
@@ -101,7 +103,7 @@ function JobTypesSection() {
   )
 }
 
-function TagsSection() {
+function TagsSection({ category, title, placeholder }: { category: TagCategory; title: string; placeholder: string }) {
   const [tags, setTags] = useState<Tag[]>([])
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
@@ -109,7 +111,7 @@ function TagsSection() {
   const [error, setError] = useState<string | null>(null)
 
   function load() {
-    api.get<Tag[]>('/tags').then(setTags)
+    api.get<Tag[]>(`/tags?category=${category}`).then(setTags)
   }
 
   useEffect(load, [])
@@ -118,7 +120,7 @@ function TagsSection() {
     e.preventDefault()
     setError(null)
     try {
-      await api.post('/tags', { name, color })
+      await api.post('/tags', { name, color, category })
       setName('')
       setShowForm(false)
       load()
@@ -135,7 +137,7 @@ function TagsSection() {
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
-        <h2 className="font-medium text-slate-900">Job Tags</h2>
+        <h2 className="font-medium text-slate-900">{title}</h2>
         <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Tag'}</Button>
       </div>
 
@@ -143,8 +145,14 @@ function TagsSection() {
         <Card>
           <form onSubmit={handleCreate} className="space-y-3">
             <div>
-              <Label htmlFor="tag-name">Name</Label>
-              <Input id="tag-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Warranty" required />
+              <Label htmlFor={`tag-name-${category}`}>Name</Label>
+              <Input
+                id={`tag-name-${category}`}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={placeholder}
+                required
+              />
             </div>
             <div>
               <Label>Color</Label>

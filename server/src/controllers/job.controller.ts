@@ -9,7 +9,7 @@ function parseJobStatus(value: unknown): JobStatus | undefined {
 }
 
 const jobInclude = {
-  location: { include: { customer: true } },
+  location: { include: { customer: true, contacts: true } },
   jobType: true,
   tags: true,
   appointments: { include: { technician: true } },

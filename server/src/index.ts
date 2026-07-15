@@ -5,6 +5,7 @@ import healthRoute from './routes/health.route.js'
 import userRoutes from './routes/user.routes.js'
 import customerRoutes from './routes/customer.routes.js'
 import locationRoutes from './routes/location.routes.js'
+import locationContactRoutes from './routes/locationContact.routes.js'
 import pricebookItemRoutes from './routes/pricebookItem.routes.js'
 import jobTypeRoutes from './routes/jobType.routes.js'
 import tagRoutes from './routes/tag.routes.js'
@@ -25,6 +26,7 @@ app.use('/api/health', healthRoute)
 app.use('/api/users', userRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/locations', locationRoutes)
+app.use('/api/location-contacts', locationContactRoutes)
 app.use('/api/pricebook-items', pricebookItemRoutes)
 app.use('/api/job-types', jobTypeRoutes)
 app.use('/api/tags', tagRoutes)

@@ -14,6 +14,8 @@ export type PricebookItemType = 'SERVICE' | 'MATERIAL' | 'EQUIPMENT'
 export type EstimateStatus = 'DRAFT' | 'PRESENTED' | 'APPROVED' | 'DECLINED'
 export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'VOID'
 export type PaymentMethod = 'CASH' | 'CHECK' | 'CARD' | 'ACH' | 'FINANCING'
+export type TagCategory = 'JOB' | 'CUSTOMER' | 'LOCATION'
+export type ContactRole = 'TENANT' | 'PROPERTY_MANAGER' | 'OTHER'
 
 export interface User {
   id: string
@@ -21,6 +23,24 @@ export interface User {
   email: string
   phone: string | null
   role: Role
+}
+
+export interface Tag {
+  id: string
+  name: string
+  color: string
+  category: TagCategory
+  active: boolean
+}
+
+export interface LocationContact {
+  id: string
+  locationId: string
+  name: string
+  email: string | null
+  phone: string | null
+  role: ContactRole
+  isPrimary: boolean
 }
 
 export interface Location {
@@ -32,6 +52,8 @@ export interface Location {
   state: string
   postalCode: string
   notes: string | null
+  tags: Tag[]
+  contacts: LocationContact[]
 }
 
 export interface Customer {
@@ -42,6 +64,7 @@ export interface Customer {
   type: CustomerType
   notes: string | null
   locations: Location[]
+  tags: Tag[]
 }
 
 export interface LocationWithCustomer extends Location {
@@ -117,13 +140,6 @@ export interface JobType {
   id: string
   name: string
   defaultPriority: JobPriority
-  active: boolean
-}
-
-export interface Tag {
-  id: string
-  name: string
-  color: string
   active: boolean
 }
 

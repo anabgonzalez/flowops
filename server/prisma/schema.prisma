@@ -83,6 +83,18 @@ enum PaymentMethod {
   FINANCING
 }
 
+enum TagCategory {
+  JOB
+  CUSTOMER
+  LOCATION
+}
+
+enum ContactRole {
+  TENANT
+  PROPERTY_MANAGER
+  OTHER
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
@@ -106,8 +118,13 @@ model Customer {
   updatedAt DateTime     @updatedAt
 
   locations Location[]
+  tags      Tag[]
 }
 
+// The Customer on a Location is the billing/approval party (e.g. a
+// landlord). LocationContact is a separate person at the property who
+// coordinates scheduling/on-site access (e.g. a tenant) - they don't pay
+// or approve anything, they're just who the field team talks to.
 model Location {
   id           String   @id @default(cuid())
   customerId   String
@@ -120,8 +137,24 @@ model Location {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customer Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
   jobs     Job[]
+  tags     Tag[]
+  contacts LocationContact[]
+}
+
+model LocationContact {
+  id         String      @id @default(cuid())
+  locationId String
+  name       String
+  email      String?
+  phone      String?
+  role       ContactRole @default(TENANT)
+  isPrimary  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 }
 
 model JobType {
@@ -136,14 +169,17 @@ model JobType {
 }
 
 model Tag {
-  id        String   @id @default(cuid())
-  name      String   @unique
+  id        String      @id @default(cuid())
+  name      String      @unique
   color     String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  category  TagCategory @default(JOB)
+  active    Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
-  jobs Job[]
+  jobs      Job[]
+  customers Customer[]
+  locations Location[]
 }
 
 model Job {
