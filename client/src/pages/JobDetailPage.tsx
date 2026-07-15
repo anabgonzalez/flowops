@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { AppointmentStatus, Job, JobPriority, JobType, PaymentMethod, PricebookItem, Tag, Timeframe, User } from '../api/types'
@@ -77,31 +77,15 @@ export function JobDetailPage() {
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/jobs" className="text-sm text-slate-500 hover:underline">
-          &larr; Back to jobs
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/jobs" className="text-sm text-slate-500 hover:underline">
+            &larr; Back to jobs
+          </Link>
+          <JobActionsMenu job={job} onHold={handleHold} onResume={handleResume} onCancel={handleCancel} onDelete={handleDelete} />
+        </div>
 
         <JobDetailsHeader job={job} jobTypes={jobTypes} jobTags={jobTags} onChange={load} />
 
-        <div className="mt-3 flex gap-2">
-          {job.status === 'ON_HOLD' ? (
-            <Button variant="secondary" onClick={handleResume}>
-              Resume
-            </Button>
-          ) : job.status !== 'CANCELED' && job.status !== 'COMPLETED' ? (
-            <Button variant="secondary" onClick={handleHold}>
-              Put on Hold
-            </Button>
-          ) : null}
-          {job.status !== 'CANCELED' && job.status !== 'COMPLETED' && (
-            <Button variant="danger" onClick={handleCancel}>
-              Cancel Job
-            </Button>
-          )}
-          <Button variant="danger" onClick={handleDelete}>
-            Delete Job
-          </Button>
-        </div>
         <p className="mt-2 text-xs text-slate-400">
           Status updates automatically as appointments are scheduled and completed.
         </p>
@@ -116,6 +100,98 @@ export function JobDetailPage() {
       />
       <EstimatesSection jobId={job.id} estimates={job.estimates} pricebookItems={pricebookItems} onChange={load} />
       <InvoicesSection jobId={job.id} job={job} pricebookItems={pricebookItems} onChange={load} />
+    </div>
+  )
+}
+
+// Collapses the hold/cancel/delete actions - things you do rarely and want
+// out of the way, not competing with the primary "Schedule"/"New Estimate"
+// buttons - into a single top-right menu, same idea as the ⋮ menu pattern.
+function JobActionsMenu({
+  job,
+  onHold,
+  onResume,
+  onCancel,
+  onDelete,
+}: {
+  job: Job
+  onHold: () => void
+  onResume: () => void
+  onCancel: () => void
+  onDelete: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function run(action: () => void) {
+    setOpen(false)
+    action()
+  }
+
+  const canHoldOrCancel = job.status !== 'CANCELED' && job.status !== 'COMPLETED'
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Job actions"
+        className="flex cursor-pointer items-center justify-center rounded-md border border-slate-300 p-1.5 text-slate-600 hover:bg-slate-50"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-md border border-slate-200 bg-white shadow-lg">
+          {job.status === 'ON_HOLD' ? (
+            <button
+              type="button"
+              onClick={() => run(onResume)}
+              className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            >
+              Resume
+            </button>
+          ) : canHoldOrCancel ? (
+            <button
+              type="button"
+              onClick={() => run(onHold)}
+              className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+            >
+              Put on Hold
+            </button>
+          ) : null}
+          {canHoldOrCancel && (
+            <button
+              type="button"
+              onClick={() => run(onCancel)}
+              className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+            >
+              Cancel Job
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => run(onDelete)}
+            className="block w-full cursor-pointer border-t border-slate-100 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+          >
+            Delete Job
+          </button>
+        </div>
+      )}
     </div>
   )
 }
