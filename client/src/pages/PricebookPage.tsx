@@ -170,7 +170,7 @@ function RootView({
       )}
       <div className="grid grid-cols-2 gap-2">
         {topLevel.map((c) => (
-          <CategoryCard key={c.id} category={c} onClick={() => onOpen(c.id)} />
+          <CategoryCard key={c.id} category={c} onClick={() => onOpen(c.id)} onDeleted={onChange} />
         ))}
         {uncategorizedCount > 0 && (
           <button
@@ -190,22 +190,48 @@ function RootView({
   )
 }
 
-function CategoryCard({ category, onClick }: { category: PricebookCategory; onClick: () => void }) {
-  const label =
-    category._count.children > 0
-      ? `${category._count.children} subcategor${category._count.children === 1 ? 'y' : 'ies'}`
-      : category._count.items > 0
-        ? `${category._count.items} item${category._count.items === 1 ? '' : 's'}`
-        : 'Empty'
+function CategoryCard({
+  category,
+  onClick,
+  onDeleted,
+}: {
+  category: PricebookCategory
+  onClick: () => void
+  onDeleted: () => void
+}) {
+  const isEmpty = category._count.children === 0 && category._count.items === 0
+  const label = category._count.children > 0
+    ? `${category._count.children} subcategor${category._count.children === 1 ? 'y' : 'ies'}`
+    : category._count.items > 0
+      ? `${category._count.items} item${category._count.items === 1 ? '' : 's'}`
+      : 'Empty'
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!confirm(`Delete "${category.name}"?`)) return
+    await api.del(`/pricebook-categories/${category.id}`)
+    onDeleted()
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="cursor-pointer rounded-md border border-slate-200 bg-white p-4 text-left shadow-sm hover:border-slate-400"
-    >
-      <p className="font-medium text-slate-900">{category.name}</p>
-      <p className="text-sm text-slate-500">{label}</p>
-    </button>
+    // A <div>, not a <button>, wrapping this - the delete button below is a
+    // sibling of the "open" button, not nested inside it (buttons can't nest).
+    <div className="relative rounded-md border border-slate-200 bg-white p-4 shadow-sm hover:border-slate-400">
+      <button type="button" onClick={onClick} className="block w-full cursor-pointer text-left">
+        <p className="pr-4 font-medium text-slate-900">{category.name}</p>
+        <p className="text-sm text-slate-500">{label}</p>
+      </button>
+      {isEmpty && (
+        <button
+          type="button"
+          onClick={handleDelete}
+          aria-label={`Delete ${category.name}`}
+          className="absolute right-2 top-2 cursor-pointer text-slate-400 hover:text-red-600"
+        >
+          &times;
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -264,7 +290,7 @@ function FolderView({
       {children.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {children.map((c) => (
-            <CategoryCard key={c.id} category={c} onClick={() => onOpen(c.id)} />
+            <CategoryCard key={c.id} category={c} onClick={() => onOpen(c.id)} onDeleted={onChange} />
           ))}
         </div>
       )}

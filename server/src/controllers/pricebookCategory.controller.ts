@@ -39,6 +39,14 @@ export async function updateCategory(req: Request, res: Response) {
 }
 
 export async function deleteCategory(req: Request, res: Response) {
+  const [childCount, itemCount] = await Promise.all([
+    prisma.pricebookCategory.count({ where: { parentId: req.params.id } }),
+    prisma.pricebookItem.count({ where: { categoryId: req.params.id } }),
+  ])
+  if (childCount > 0 || itemCount > 0) {
+    throw new AppError(400, 'Only an empty category (no subcategories or items) can be deleted')
+  }
+
   await prisma.pricebookCategory.delete({ where: { id: req.params.id } })
   res.status(204).send()
 }
