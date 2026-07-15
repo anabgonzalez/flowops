@@ -317,10 +317,15 @@ const contactRoleLabels: Record<ContactRole, string> = {
 // reasons: the on-site contact (e.g. a tenant, who coordinates access/
 // scheduling) and the customer on the location (e.g. a landlord, who
 // approves/pays - estimates scheduled through the tenant still need the
-// owner's sign-off). Show both, each with their own call/text/email
-// shortcuts, rather than picking just one.
+// owner's sign-off). Those two always show. A commercial property or
+// property manager can have several other contacts on file (staff,
+// alternates) - those stay collapsed behind "+N more" so the page doesn't
+// turn into a long list of icons by default.
 function ContactRows({ job }: { job: Job }) {
-  const primaryContact = job.location.contacts.find((c) => c.isPrimary) ?? job.location.contacts[0]
+  const [showAll, setShowAll] = useState(false)
+  const contacts = job.location.contacts
+  const primaryContact = contacts.find((c) => c.isPrimary) ?? contacts[0]
+  const otherContacts = contacts.filter((c) => c.id !== primaryContact?.id)
   const customer = job.location.customer
 
   return (
@@ -334,6 +339,19 @@ function ContactRows({ job }: { job: Job }) {
         />
       )}
       <ContactRow label="Owner" name={customer.name} phone={customer.phone} email={customer.email} />
+      {showAll &&
+        otherContacts.map((c) => (
+          <ContactRow key={c.id} label={contactRoleLabels[c.role]} name={c.name} phone={c.phone} email={c.email} />
+        ))}
+      {otherContacts.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((s) => !s)}
+          className="cursor-pointer text-xs font-medium text-titan-600 hover:underline"
+        >
+          {showAll ? 'Show fewer contacts' : `+${otherContacts.length} more contact${otherContacts.length > 1 ? 's' : ''}`}
+        </button>
+      )}
     </div>
   )
 }
