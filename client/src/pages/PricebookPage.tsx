@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api/client'
 import type { PricebookCategory, PricebookItem, PricebookItemType } from '../api/types'
 import { Button, Card, formatCents, Input, Label, Select } from '../components/ui'
+import { emptyPricebookItemFormValues, PricebookItemForm } from '../components/PricebookItemForm'
 
 const TYPES: { value: PricebookItemType | ''; label: string }[] = [
   { value: '', label: 'All Types' },
@@ -13,6 +14,11 @@ const TYPES: { value: PricebookItemType | ''; label: string }[] = [
 ]
 
 const UNCATEGORIZED = '__uncategorized__'
+
+function categoryPath(category: PricebookCategory, all: PricebookCategory[]): string {
+  const parent = all.find((c) => c.id === category.parentId)
+  return parent ? `${parent.name} > ${category.name}` : category.name
+}
 
 export function PricebookPage() {
   const [categories, setCategories] = useState<PricebookCategory[]>([])
@@ -30,8 +36,8 @@ export function PricebookPage() {
   // Single refresh path: reload categories (so _count is fresh, which is
   // what decides folder-vs-leaf), the uncategorized count, and - if the
   // current view shows items - the item list for that view. Every mutating
-  // action calls this instead of patching individual pieces of state, so
-  // a newly-created item's effect on its category's lock state is never stale.
+  // action (create, move, delete) calls this instead of patching individual
+  // pieces of state, so a category's lock state is never stale.
   async function refresh() {
     const [freshCategories] = await Promise.all([
       api.get<PricebookCategory[]>('/pricebook-categories'),
@@ -96,13 +102,21 @@ export function PricebookPage() {
         <RootView categories={categories} uncategorizedCount={uncategorizedCount} onOpen={setCurrentId} onChange={refresh} />
       )}
 
-      {isUncategorizedView && <LeafView categoryId={null} items={items} onChange={refresh} />}
+      {isUncategorizedView && <LeafView categoryId={null} items={items} categories={categories} onChange={refresh} />}
 
       {current && (current._count.children > 0 || isEmptyLeafCandidate) && (
-        <FolderView category={current} children={children} isEmptyLeafCandidate={isEmptyLeafCandidate} items={items} onOpen={setCurrentId} onChange={refresh} />
+        <FolderView
+          category={current}
+          children={children}
+          isEmptyLeafCandidate={isEmptyLeafCandidate}
+          items={items}
+          categories={categories}
+          onOpen={setCurrentId}
+          onChange={refresh}
+        />
       )}
 
-      {isRealLeaf && current && <LeafView categoryId={current.id} items={items} onChange={refresh} />}
+      {isRealLeaf && current && <LeafView categoryId={current.id} items={items} categories={categories} onChange={refresh} />}
     </div>
   )
 }
@@ -200,6 +214,7 @@ function FolderView({
   children,
   isEmptyLeafCandidate,
   items,
+  categories,
   onOpen,
   onChange,
 }: {
@@ -207,6 +222,7 @@ function FolderView({
   children: PricebookCategory[]
   isEmptyLeafCandidate: boolean
   items: PricebookItem[]
+  categories: PricebookCategory[]
   onOpen: (id: string) => void
   onChange: () => void
 }) {
@@ -255,11 +271,11 @@ function FolderView({
       {isEmptyLeafCandidate && (
         <div className="space-y-3 border-t border-slate-100 pt-3">
           <p className="text-sm text-slate-500">
-            This category is empty - add a subcategory above, or add items directly to it below. Once one exists, the
-            other option locks.
+            This category is empty - add a subcategory above, or add an item directly to it below. Once one exists,
+            the other option locks.
           </p>
-          <ItemQuickCreate categoryId={category.id} onCreated={onChange} />
-          {items.length > 0 && <ItemList items={items} />}
+          <ItemCreateCard categoryId={category.id} categories={categories} onCreated={onChange} />
+          {items.length > 0 && <ItemList items={items} categories={categories} onChange={onChange} />}
         </div>
       )}
     </div>
@@ -269,10 +285,12 @@ function FolderView({
 function LeafView({
   categoryId,
   items,
+  categories,
   onChange,
 }: {
   categoryId: string | null
   items: PricebookItem[]
+  categories: PricebookCategory[]
   onChange: () => void
 }) {
   const [typeFilter, setTypeFilter] = useState<PricebookItemType | ''>('')
@@ -280,7 +298,7 @@ function LeafView({
 
   return (
     <div className="space-y-3">
-      <ItemQuickCreate categoryId={categoryId} onCreated={onChange} />
+      <ItemCreateCard categoryId={categoryId} categories={categories} onCreated={onChange} />
       <div className="flex flex-wrap gap-1">
         {TYPES.map((t) => (
           <button
@@ -295,107 +313,140 @@ function LeafView({
           </button>
         ))}
       </div>
-      {filtered.length === 0 ? <p className="text-sm text-slate-500">No items here yet.</p> : <ItemList items={filtered} />}
+      {filtered.length === 0 ? (
+        <p className="text-sm text-slate-500">No items here yet.</p>
+      ) : (
+        <ItemList items={filtered} categories={categories} onChange={onChange} />
+      )}
     </div>
   )
 }
 
-function ItemList({ items }: { items: PricebookItem[] }) {
+function ItemList({
+  items,
+  categories,
+  onChange,
+}: {
+  items: PricebookItem[]
+  categories: PricebookCategory[]
+  onChange: () => void
+}) {
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <Link key={item.id} to={`/pricebook/${item.id}`}>
-          <Card className="hover:border-slate-400">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-slate-900">{item.name}</p>
-                <p className="text-sm text-slate-500">
-                  {item.code} · {item.type}
-                </p>
-              </div>
-              <p className="font-medium text-slate-900">{formatCents(item.priceCents)}</p>
-            </div>
-          </Card>
-        </Link>
+        <ItemRow key={item.id} item={item} categories={categories} onChange={onChange} />
       ))}
     </div>
   )
 }
 
-function ItemQuickCreate({ categoryId, onCreated }: { categoryId: string | null; onCreated: () => void }) {
-  const [showForm, setShowForm] = useState(false)
-  const [code, setCode] = useState('')
-  const [name, setName] = useState('')
-  const [type, setType] = useState<PricebookItemType>('SERVICE')
-  const [cost, setCost] = useState('')
-  const [price, setPrice] = useState('')
+function ItemRow({
+  item,
+  categories,
+  onChange,
+}: {
+  item: PricebookItem
+  categories: PricebookCategory[]
+  onChange: () => void
+}) {
+  const [showMove, setShowMove] = useState(false)
+  const [targetCategoryId, setTargetCategoryId] = useState(item.categoryId ?? '')
   const [error, setError] = useState<string | null>(null)
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
+  const moveTargets = categories.filter((c) => c._count.children === 0 && c.id !== item.categoryId)
+
+  async function handleMove() {
     setError(null)
     try {
-      await api.post('/pricebook-items', {
-        code,
-        name,
-        type,
-        categoryId: categoryId || undefined,
-        costCents: Math.round(Number(cost) * 100),
-        priceCents: Math.round(Number(price) * 100),
-      })
-      setCode('')
-      setName('')
-      setCost('')
-      setPrice('')
-      setShowForm(false)
-      onCreated()
+      await api.patch(`/pricebook-items/${item.id}`, { categoryId: targetCategoryId || null })
+      setShowMove(false)
+      onChange()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create item')
+      setError(err instanceof Error ? err.message : 'Failed to move item')
     }
   }
+
+  async function handleDelete() {
+    if (!confirm(`Delete "${item.name}"? This can't be undone.`)) return
+    await api.del(`/pricebook-items/${item.id}`)
+    onChange()
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-2">
+        <Link to={`/pricebook/${item.id}`} className="min-w-0 flex-1">
+          <p className="truncate font-medium text-slate-900">{item.name}</p>
+          <p className="text-sm text-slate-500">
+            {item.code} · {item.type}
+          </p>
+        </Link>
+        <div className="flex shrink-0 items-center gap-3">
+          <p className="font-medium text-slate-900">{formatCents(item.priceCents)}</p>
+          <button
+            type="button"
+            onClick={() => setShowMove((s) => !s)}
+            className="cursor-pointer text-sm font-medium text-titan-600 hover:underline"
+          >
+            {showMove ? 'Cancel' : 'Move'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            aria-label={`Delete ${item.name}`}
+            className="cursor-pointer text-slate-400 hover:text-red-600"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+      {showMove && (
+        <div className="mt-2 flex items-center gap-2 border-t border-slate-100 pt-2">
+          <Select value={targetCategoryId} onChange={(e) => setTargetCategoryId(e.target.value)} className="flex-1">
+            <option value="">Uncategorized</option>
+            {moveTargets.map((c) => (
+              <option key={c.id} value={c.id}>
+                {categoryPath(c, categories)}
+              </option>
+            ))}
+          </Select>
+          <Button type="button" onClick={handleMove}>
+            Move
+          </Button>
+        </div>
+      )}
+      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+    </Card>
+  )
+}
+
+function ItemCreateCard({
+  categoryId,
+  categories,
+  onCreated,
+}: {
+  categoryId: string | null
+  categories: PricebookCategory[]
+  onCreated: () => void
+}) {
+  const [showForm, setShowForm] = useState(false)
 
   return (
     <div>
       <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Item'}</Button>
       {showForm && (
         <Card className="mt-2">
-          <form onSubmit={handleCreate} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="pbi-code">Task Code</Label>
-                <Input id="pbi-code" value={code} onChange={(e) => setCode(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="pbi-type">Type</Label>
-                <Select id="pbi-type" value={type} onChange={(e) => setType(e.target.value as PricebookItemType)}>
-                  <option value="SERVICE">Service</option>
-                  <option value="MATERIAL">Material</option>
-                  <option value="EQUIPMENT">Equipment</option>
-                  <option value="OTHER">Other</option>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="pbi-name">Name</Label>
-              <Input id="pbi-name" value={name} onChange={(e) => setName(e.target.value)} required />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="pbi-cost">Cost ($)</Label>
-                <Input id="pbi-cost" type="number" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="pbi-price">Price ($)</Label>
-                <Input id="pbi-price" type="number" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} required />
-              </div>
-            </div>
-            <p className="text-xs text-slate-500">
-              More fields (member price, markup, pricing method, warranty, vendor, bill of materials) are editable
-              after creating the item.
-            </p>
-            {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit">Save Item</Button>
-          </form>
+          <PricebookItemForm
+            initial={emptyPricebookItemFormValues(categoryId ?? '')}
+            categories={categories}
+            onSave={async (payload) => {
+              await api.post('/pricebook-items', payload)
+              setShowForm(false)
+              onCreated()
+            }}
+            onCancel={() => setShowForm(false)}
+            submitLabel="Save Item"
+          />
         </Card>
       )}
     </div>
