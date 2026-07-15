@@ -13,6 +13,15 @@ function parseType(value: unknown): PricebookItemType | undefined {
   return typeof value === 'string' && value in PricebookItemType ? (value as PricebookItemType) : undefined
 }
 
+// Mirrors the rule in pricebookCategory.controller.ts: a category with
+// subcategories is a "folder" and can't hold items directly.
+async function assertCategoryCanHoldItems(categoryId: string) {
+  const childCount = await prisma.pricebookCategory.count({ where: { parentId: categoryId } })
+  if (childCount > 0) {
+    throw new AppError(400, 'This category has subcategories - assign the item to one of them instead')
+  }
+}
+
 // All the editable fields, shared by create/update so both accept the
 // same shape - Express req.body is untyped, so this just narrows it.
 function pickFields(body: Record<string, unknown>) {
@@ -72,6 +81,9 @@ export async function createPricebookItem(req: Request, res: Response) {
   if (!fields.code || !fields.name || !fields.type || fields.costCents == null || fields.priceCents == null) {
     throw new AppError(400, 'code, name, type, costCents, and priceCents are required')
   }
+  if (fields.categoryId) {
+    await assertCategoryCanHoldItems(fields.categoryId)
+  }
   const item = await prisma.pricebookItem.create({
     data: fields as Prisma.PricebookItemUncheckedCreateInput,
     include: itemInclude,
@@ -81,6 +93,9 @@ export async function createPricebookItem(req: Request, res: Response) {
 
 export async function updatePricebookItem(req: Request, res: Response) {
   const fields = pickFields(req.body)
+  if (fields.categoryId) {
+    await assertCategoryCanHoldItems(fields.categoryId)
+  }
   const item = await prisma.pricebookItem.update({
     where: { id: req.params.id },
     data: fields as Prisma.PricebookItemUncheckedUpdateInput,

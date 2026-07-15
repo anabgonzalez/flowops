@@ -76,6 +76,7 @@ export interface PricebookCategory {
   id: string
   name: string
   parentId: string | null
+  _count: { children: number; items: number }
 }
 
 export interface PricebookItemComponent {

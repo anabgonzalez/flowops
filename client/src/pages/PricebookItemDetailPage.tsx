@@ -280,12 +280,17 @@ function ItemForm({
             <Label htmlFor="edit-pbi-category">Category</Label>
             <Select id="edit-pbi-category" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
               <option value="">Uncategorized</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
+              {categories
+                .filter((c) => c._count.children === 0 || c.id === item.categoryId)
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
             </Select>
+            <p className="mt-1 text-xs text-slate-500">
+              Only leaf categories (no subcategories) can hold items directly.
+            </p>
           </div>
         </div>
 
