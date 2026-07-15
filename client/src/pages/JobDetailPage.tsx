@@ -338,7 +338,12 @@ function ContactRows({ job }: { job: Job }) {
           email={primaryContact.email}
         />
       )}
-      <ContactRow label="Owner" name={customer.name} phone={customer.phone} email={customer.email} />
+      <ContactRow
+        label={customer.type === 'COMMERCIAL' ? 'Account Holder' : 'Owner'}
+        name={customer.name}
+        phone={customer.phone}
+        email={customer.email}
+      />
       {showAll &&
         otherContacts.map((c) => (
           <ContactRow key={c.id} label={contactRoleLabels[c.role]} name={c.name} phone={c.phone} email={c.email} />
