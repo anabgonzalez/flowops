@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, LabelHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react'
+import { tagChipClass } from './tagPalette'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
@@ -20,7 +21,7 @@ export function Button({
   }
   return (
     <button
-      className={`rounded-md px-3 py-1.5 text-sm font-semibold disabled:opacity-50 ${styles[variant]} ${className}`}
+      className={`cursor-pointer rounded-md px-3 py-1.5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]} ${className}`}
       {...props}
     />
   )
@@ -95,6 +96,14 @@ const priorityAccent: Record<string, string> = {
 
 export function priorityAccentClass(priority: string) {
   return priorityAccent[priority] ?? 'border-l-slate-300'
+}
+
+export function TagChip({ name, color }: { name: string; color: string }) {
+  return (
+    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${tagChipClass(color)}`}>
+      {name}
+    </span>
+  )
 }
 
 export function formatCents(cents: number) {

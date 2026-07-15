@@ -1,11 +1,12 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { CustomersIcon, JobsIcon, PricebookIcon, TechniciansIcon } from './icons'
+import { CustomersIcon, JobsIcon, PricebookIcon, SettingsIcon, TechniciansIcon } from './icons'
 
 const links = [
   { to: '/jobs', label: 'Jobs', Icon: JobsIcon },
   { to: '/customers', label: 'Customers', Icon: CustomersIcon },
   { to: '/pricebook', label: 'Pricebook', Icon: PricebookIcon },
   { to: '/technicians', label: 'Technicians', Icon: TechniciansIcon },
+  { to: '/settings', label: 'Settings', Icon: SettingsIcon },
 ]
 
 export function Layout() {

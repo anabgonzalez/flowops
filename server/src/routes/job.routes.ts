@@ -1,6 +1,15 @@
 import { Router } from 'express'
 import { asyncHandler } from '../middleware/asyncHandler.js'
-import { createJob, deleteJob, getJob, listJobs, updateJob } from '../controllers/job.controller.js'
+import {
+  cancelJob,
+  createJob,
+  deleteJob,
+  getJob,
+  holdJob,
+  listJobs,
+  resumeJob,
+  updateJob,
+} from '../controllers/job.controller.js'
 import {
   createAppointment,
   listAppointmentsForJob,
@@ -15,6 +24,10 @@ router.get('/:id', asyncHandler(getJob))
 router.post('/', asyncHandler(createJob))
 router.patch('/:id', asyncHandler(updateJob))
 router.delete('/:id', asyncHandler(deleteJob))
+
+router.post('/:id/cancel', asyncHandler(cancelJob))
+router.post('/:id/hold', asyncHandler(holdJob))
+router.post('/:id/resume', asyncHandler(resumeJob))
 
 router.get('/:jobId/appointments', asyncHandler(listAppointmentsForJob))
 router.post('/:jobId/appointments', asyncHandler(createAppointment))

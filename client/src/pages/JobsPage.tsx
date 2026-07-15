@@ -1,14 +1,25 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { Customer, JobListItem, JobPriority, JobStatus } from '../api/types'
-import { Badge, Button, Card, Input, Label, priorityAccentClass, Select } from '../components/ui'
+import type { Customer, JobListItem, JobPriority, JobStatus, JobType, Location, Tag, User } from '../api/types'
+import { Badge, Button, Card, Input, Label, priorityAccentClass, Select, TagChip } from '../components/ui'
+import { CustomerCombobox } from '../components/CustomerCombobox'
+import { LocationPicker } from '../components/LocationPicker'
+import { RichTextEditor } from '../components/RichTextEditor'
+import { tagChipClass } from '../components/tagPalette'
 
 const STATUSES: JobStatus[] = ['UNSCHEDULED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED', 'ON_HOLD']
+
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+}
 
 export function JobsPage() {
   const [jobs, setJobs] = useState<JobListItem[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [jobTypes, setJobTypes] = useState<JobType[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
+  const [technicians, setTechnicians] = useState<User[]>([])
   const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('')
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -16,41 +27,77 @@ export function JobsPage() {
   const showForm = searchParams.has('new') || searchParams.has('newForLocation')
   const presetLocationId = searchParams.get('newForLocation') ?? ''
 
-  const [customerId, setCustomerId] = useState('')
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [locationId, setLocationId] = useState(presetLocationId)
-  const [jobType, setJobType] = useState('')
+  const [jobTypeId, setJobTypeId] = useState('')
   const [summary, setSummary] = useState('')
   const [priority, setPriority] = useState<JobPriority>('NORMAL')
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+  const [scheduleNow, setScheduleNow] = useState(false)
+  const [technicianId, setTechnicianId] = useState('')
+  const [start, setStart] = useState('')
+  const [end, setEnd] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   function loadJobs() {
-    api
-      .get<JobListItem[]>(`/jobs${statusFilter ? `?status=${statusFilter}` : ''}`)
-      .then(setJobs)
+    api.get<JobListItem[]>(`/jobs${statusFilter ? `?status=${statusFilter}` : ''}`).then(setJobs)
   }
 
   useEffect(loadJobs, [statusFilter])
+  useEffect(() => {
+    api.get<JobType[]>('/job-types?active=true').then(setJobTypes)
+    api.get<Tag[]>('/tags?active=true').then(setTags)
+    api.get<User[]>('/users').then((users) => setTechnicians(users.filter((u) => u.role === 'TECHNICIAN')))
+  }, [])
   useEffect(() => {
     api.get<Customer[]>('/customers').then((data) => {
       setCustomers(data)
       if (presetLocationId) {
         const owner = data.find((c) => c.locations.some((l) => l.id === presetLocationId))
-        if (owner) setCustomerId(owner.id)
+        if (owner) setSelectedCustomer(owner)
       }
     })
   }, [presetLocationId])
 
-  const locationsForCustomer = useMemo(
-    () => customers.find((c) => c.id === customerId)?.locations ?? [],
-    [customers, customerId],
-  )
+  function handleJobTypeChange(id: string) {
+    setJobTypeId(id)
+    const jt = jobTypes.find((j) => j.id === id)
+    if (jt) setPriority(jt.defaultPriority)
+  }
+
+  function toggleTag(id: string) {
+    setSelectedTagIds((ids) => (ids.includes(id) ? ids.filter((t) => t !== id) : [...ids, id]))
+  }
+
+  function resetForm() {
+    setSelectedCustomer(null)
+    setLocationId('')
+    setJobTypeId('')
+    setSummary('')
+    setPriority('NORMAL')
+    setSelectedTagIds([])
+    setScheduleNow(false)
+    setTechnicianId('')
+    setStart('')
+    setEnd('')
+  }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     try {
-      const job = await api.post<{ id: string }>('/jobs', { locationId, jobType, summary, priority })
+      const job = await api.post<{ id: string }>('/jobs', {
+        locationId,
+        jobTypeId,
+        summary,
+        priority,
+        tagIds: selectedTagIds,
+        technicianId: scheduleNow ? technicianId || undefined : undefined,
+        start: scheduleNow && start ? new Date(start).toISOString() : undefined,
+        end: scheduleNow && end ? new Date(end).toISOString() : undefined,
+      })
       setSearchParams({})
+      resetForm()
       navigate(`/jobs/${job.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create job')
@@ -70,54 +117,134 @@ export function JobsPage() {
         <Card>
           <form onSubmit={handleCreate} className="space-y-3">
             <div>
-              <Label htmlFor="job-customer">Customer</Label>
-              <Select
-                id="job-customer"
-                value={customerId}
-                onChange={(e) => {
-                  setCustomerId(e.target.value)
+              <Label>Customer</Label>
+              <CustomerCombobox
+                customers={customers}
+                value={selectedCustomer}
+                onSelect={(c) => {
+                  setSelectedCustomer(c)
                   setLocationId('')
                 }}
-                required
-              >
-                <option value="">Select a customer&hellip;</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </Select>
+                onCreated={(c) => {
+                  setCustomers((cs) => [...cs, c])
+                  setSelectedCustomer(c)
+                  setLocationId('')
+                }}
+              />
             </div>
+
             <div>
-              <Label htmlFor="job-location">Location</Label>
-              <Select id="job-location" value={locationId} onChange={(e) => setLocationId(e.target.value)} required disabled={!customerId}>
-                <option value="">Select a location&hellip;</option>
-                {locationsForCustomer.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.addressLine1}, {l.city}
-                  </option>
-                ))}
-              </Select>
+              <Label>Location</Label>
+              <LocationPicker
+                customer={selectedCustomer}
+                value={locationId}
+                onSelect={setLocationId}
+                onCreated={(loc: Location) => {
+                  setSelectedCustomer((c) => (c ? { ...c, locations: [...c.locations, loc] } : c))
+                  setCustomers((cs) =>
+                    cs.map((c) => (c.id === loc.customerId ? { ...c, locations: [...c.locations, loc] } : c)),
+                  )
+                  setLocationId(loc.id)
+                }}
+              />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="job-type">Job Type</Label>
+                <Select id="job-type" value={jobTypeId} onChange={(e) => handleJobTypeChange(e.target.value)} required>
+                  <option value="">Select&hellip;</option>
+                  {jobTypes.map((jt) => (
+                    <option key={jt.id} value={jt.id}>
+                      {jt.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="job-priority">Priority</Label>
+                <Select id="job-priority" value={priority} onChange={(e) => setPriority(e.target.value as JobPriority)}>
+                  <option value="LOW">Low</option>
+                  <option value="NORMAL">Normal</option>
+                  <option value="HIGH">High</option>
+                  <option value="URGENT">Urgent</option>
+                </Select>
+              </div>
+            </div>
+
             <div>
-              <Label htmlFor="job-type">Job Type</Label>
-              <Input id="job-type" value={jobType} onChange={(e) => setJobType(e.target.value)} placeholder="e.g. HVAC Repair" required />
+              <Label>Summary</Label>
+              <RichTextEditor value={summary} onChange={setSummary} placeholder="Describe the job..." />
             </div>
-            <div>
-              <Label htmlFor="job-summary">Summary</Label>
-              <Input id="job-summary" value={summary} onChange={(e) => setSummary(e.target.value)} required />
+
+            {tags.length > 0 && (
+              <div>
+                <Label>Tags</Label>
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={`cursor-pointer rounded-full px-2 py-0.5 text-xs font-semibold ${tagChipClass(tag.color)} ${
+                        selectedTagIds.includes(tag.id) ? 'ring-2 ring-offset-1 ring-titan-500' : 'opacity-50'
+                      }`}
+                    >
+                      {tag.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="border-t border-slate-100 pt-3">
+              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+                <input type="checkbox" checked={scheduleNow} onChange={(e) => setScheduleNow(e.target.checked)} />
+                Schedule now (optional — you can schedule later instead)
+              </label>
+              {scheduleNow && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <Label htmlFor="job-technician">Technician</Label>
+                    <Select id="job-technician" value={technicianId} onChange={(e) => setTechnicianId(e.target.value)}>
+                      <option value="">Unassigned</option>
+                      {technicians.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="job-start">Start</Label>
+                      <Input
+                        id="job-start"
+                        type="datetime-local"
+                        value={start}
+                        onChange={(e) => setStart(e.target.value)}
+                        required={scheduleNow}
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="job-end">End</Label>
+                      <Input
+                        id="job-end"
+                        type="datetime-local"
+                        value={end}
+                        onChange={(e) => setEnd(e.target.value)}
+                        required={scheduleNow}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <Label htmlFor="job-priority">Priority</Label>
-              <Select id="job-priority" value={priority} onChange={(e) => setPriority(e.target.value as JobPriority)}>
-                <option value="LOW">Low</option>
-                <option value="NORMAL">Normal</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </Select>
-            </div>
+
             {error && <p className="text-sm text-red-600">{error}</p>}
-            <Button type="submit">Create Job</Button>
+            <Button type="submit" disabled={!locationId || !jobTypeId}>
+              Create Job
+            </Button>
           </form>
         </Card>
       )}
@@ -142,11 +269,18 @@ export function JobsPage() {
               <Card className={`border-l-4 hover:border-slate-400 ${priorityAccentClass(job.priority)}`}>
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="font-semibold text-slate-900">{job.jobType}</p>
-                    <p className="text-sm text-slate-500">{job.summary}</p>
+                    <p className="font-semibold text-slate-900">{job.jobType.name}</p>
+                    <p className="text-sm text-slate-500">{stripHtml(job.summary)}</p>
                     <p className="mt-1 text-sm text-slate-600">
                       {job.location.customer.name} · {job.location.addressLine1}, {job.location.city}
                     </p>
+                    {job.tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {job.tags.map((t) => (
+                          <TagChip key={t.id} name={t.name} color={t.color} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge value={job.status} />

@@ -124,10 +124,32 @@ model Location {
   jobs     Job[]
 }
 
+model JobType {
+  id              String      @id @default(cuid())
+  name            String      @unique
+  defaultPriority JobPriority @default(NORMAL)
+  active          Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  jobs Job[]
+}
+
+model Tag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+}
+
 model Job {
   id         String      @id @default(cuid())
   locationId String
-  jobType    String
+  jobTypeId  String
   status     JobStatus   @default(UNSCHEDULED)
   priority   JobPriority @default(NORMAL)
   summary    String
@@ -135,6 +157,8 @@ model Job {
   updatedAt  DateTime    @updatedAt
 
   location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  jobType      JobType       @relation(fields: [jobTypeId], references: [id])
+  tags         Tag[]
   appointments Appointment[]
   estimates    Estimate[]
   invoices     Invoice[]
@@ -185,6 +209,7 @@ model Estimate {
 
   job       Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
   lineItems EstimateLineItem[]
+  invoice   Invoice?
 }
 
 model EstimateLineItem {
@@ -203,6 +228,7 @@ model EstimateLineItem {
 model Invoice {
   id            String        @id @default(cuid())
   jobId         String
+  estimateId    String?       @unique
   invoiceNumber String        @unique
   status        InvoiceStatus @default(DRAFT)
   subtotalCents Int           @default(0)
@@ -213,6 +239,7 @@ model Invoice {
   updatedAt     DateTime      @updatedAt
 
   job       Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  estimate  Estimate?         @relation(fields: [estimateId], references: [id])
   lineItems InvoiceLineItem[]
   payments  Payment[]
 }

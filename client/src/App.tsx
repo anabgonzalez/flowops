@@ -7,6 +7,7 @@ import { JobDetailPage } from './pages/JobDetailPage'
 import { PricebookPage } from './pages/PricebookPage'
 import { TechniciansPage } from './pages/TechniciansPage'
 import { TechnicianDetailPage } from './pages/TechnicianDetailPage'
+import { SettingsPage } from './pages/SettingsPage'
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/pricebook" element={<PricebookPage />} />
         <Route path="/technicians" element={<TechniciansPage />} />
         <Route path="/technicians/:id" element={<TechnicianDetailPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
     </Routes>
   )

@@ -59,6 +59,8 @@ export async function createInvoice(req: Request, res: Response) {
     if (estimate.status !== 'APPROVED') {
       throw new AppError(400, 'Only an approved estimate can be converted to an invoice')
     }
+    const existingInvoice = await prisma.invoice.findUnique({ where: { estimateId } })
+    if (existingInvoice) throw new AppError(409, 'This estimate has already been converted to an invoice')
     resolvedLineItems = estimate.lineItems.map((item) => ({
       pricebookItemId: item.pricebookItemId ?? undefined,
       description: item.description,
@@ -78,6 +80,7 @@ export async function createInvoice(req: Request, res: Response) {
   const invoice = await prisma.invoice.create({
     data: {
       jobId: req.params.jobId,
+      estimateId,
       invoiceNumber: generateInvoiceNumber(),
       subtotalCents,
       taxCents: resolvedTaxCents,

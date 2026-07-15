@@ -78,6 +78,7 @@ export interface Estimate {
   taxCents: number
   totalCents: number
   lineItems: LineItem[]
+  invoice: { id: string } | null
 }
 
 export interface Payment {
@@ -112,15 +113,31 @@ export interface Appointment {
   technician: User | null
 }
 
+export interface JobType {
+  id: string
+  name: string
+  defaultPriority: JobPriority
+  active: boolean
+}
+
+export interface Tag {
+  id: string
+  name: string
+  color: string
+  active: boolean
+}
+
 export interface Job {
   id: string
   locationId: string
-  jobType: string
+  jobTypeId: string
+  jobType: JobType
   status: JobStatus
   priority: JobPriority
   summary: string
   createdAt: string
   location: LocationWithCustomer
+  tags: Tag[]
   appointments: Appointment[]
   estimates: Estimate[]
   invoices: Invoice[]
@@ -128,11 +145,13 @@ export interface Job {
 
 export interface JobListItem {
   id: string
-  jobType: string
+  jobTypeId: string
+  jobType: JobType
   status: JobStatus
   priority: JobPriority
   summary: string
   createdAt: string
   location: LocationWithCustomer
+  tags: Tag[]
   appointments: Appointment[]
 }

@@ -6,6 +6,8 @@ import userRoutes from './routes/user.routes.js'
 import customerRoutes from './routes/customer.routes.js'
 import locationRoutes from './routes/location.routes.js'
 import pricebookItemRoutes from './routes/pricebookItem.routes.js'
+import jobTypeRoutes from './routes/jobType.routes.js'
+import tagRoutes from './routes/tag.routes.js'
 import jobRoutes from './routes/job.routes.js'
 import appointmentRoutes from './routes/appointment.routes.js'
 import estimateRoutes from './routes/estimate.routes.js'
@@ -24,6 +26,8 @@ app.use('/api/users', userRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/locations', locationRoutes)
 app.use('/api/pricebook-items', pricebookItemRoutes)
+app.use('/api/job-types', jobTypeRoutes)
+app.use('/api/tags', tagRoutes)
 app.use('/api/jobs', jobRoutes)
 app.use('/api/appointments', appointmentRoutes)
 app.use('/api/estimates', estimateRoutes)

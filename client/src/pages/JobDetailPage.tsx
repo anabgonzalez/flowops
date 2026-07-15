@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { Job, JobStatus, PaymentMethod, PricebookItem, User } from '../api/types'
-import { Badge, Button, Card, formatCents, Input, Label, Select } from '../components/ui'
-
-const JOB_STATUSES: JobStatus[] = ['UNSCHEDULED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED', 'ON_HOLD']
+import type { Job, PaymentMethod, PricebookItem, User } from '../api/types'
+import { Badge, Button, Card, formatCents, Input, Label, Select, TagChip } from '../components/ui'
+import { RichTextView } from '../components/RichTextView'
 
 interface EstimateLineItemDraft {
   pricebookItemId: string
@@ -36,9 +35,21 @@ export function JobDetailPage() {
 
   if (!job) return <p className="text-sm text-slate-500">Loading...</p>
 
-  async function handleStatusChange(status: JobStatus) {
+  async function handleCancel() {
     if (!id) return
-    await api.patch(`/jobs/${id}`, { status })
+    await api.post(`/jobs/${id}/cancel`, {})
+    load()
+  }
+
+  async function handleHold() {
+    if (!id) return
+    await api.post(`/jobs/${id}/hold`, {})
+    load()
+  }
+
+  async function handleResume() {
+    if (!id) return
+    await api.post(`/jobs/${id}/resume`, {})
     load()
   }
 
@@ -50,27 +61,43 @@ export function JobDetailPage() {
         </Link>
         <div className="mt-1 flex items-start justify-between">
           <div>
-            <h1 className="text-xl font-semibold text-slate-900">{job.jobType}</h1>
-            <p className="text-sm text-slate-500">{job.summary}</p>
+            <h1 className="text-xl font-semibold text-slate-900">{job.jobType.name}</h1>
+            <RichTextView html={job.summary} />
             <p className="mt-1 text-sm text-slate-600">
               {job.location.customer.name} · {job.location.addressLine1}, {job.location.city}, {job.location.state}
             </p>
+            {job.tags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {job.tags.map((t) => (
+                  <TagChip key={t.id} name={t.name} color={t.color} />
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge value={job.priority} />
-            <Select
-              value={job.status}
-              onChange={(e) => handleStatusChange(e.target.value as JobStatus)}
-              className="w-40"
-            >
-              {JOB_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s.replace('_', ' ')}
-                </option>
-              ))}
-            </Select>
+            <Badge value={job.status} />
           </div>
         </div>
+        <div className="mt-3 flex gap-2">
+          {job.status === 'ON_HOLD' ? (
+            <Button variant="secondary" onClick={handleResume}>
+              Resume
+            </Button>
+          ) : job.status !== 'CANCELED' && job.status !== 'COMPLETED' ? (
+            <Button variant="secondary" onClick={handleHold}>
+              Put on Hold
+            </Button>
+          ) : null}
+          {job.status !== 'CANCELED' && job.status !== 'COMPLETED' && (
+            <Button variant="danger" onClick={handleCancel}>
+              Cancel Job
+            </Button>
+          )}
+        </div>
+        <p className="mt-2 text-xs text-slate-400">
+          Status updates automatically as appointments are scheduled and completed.
+        </p>
       </div>
 
       <AppointmentsSection jobId={job.id} appointments={job.appointments} technicians={technicians} onChange={load} />
@@ -350,7 +377,7 @@ function EstimatesSection({
 
 function InvoicesSection({ jobId, job, onChange }: { jobId: string; job: Job; onChange: () => void }) {
   const [error, setError] = useState<string | null>(null)
-  const approvedEstimates = job.estimates.filter((e) => e.status === 'APPROVED')
+  const approvedEstimates = job.estimates.filter((e) => e.status === 'APPROVED' && !e.invoice)
 
   async function convertToInvoice(estimateId: string) {
     setError(null)
