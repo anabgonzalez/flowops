@@ -11,19 +11,22 @@ services:
         sync: false # paste in your Neon connection string after creating the service
       - key: PORT
         value: 5002
+      - key: CLIENT_ORIGIN
+        value: https://flowops-client.onrender.com
 
   - type: web
     runtime: static
     name: flowops-client
     rootDir: client
-    buildCommand: npm install && VITE_API_URL="https://${API_HOST}" npm run build
+    buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     envVars:
-      - key: API_HOST
-        fromService:
-          name: flowops-api
-          type: web
-          property: host
+      # fromService + property:host returns Render's *private* network
+      # hostname, not the public *.onrender.com URL the browser needs to
+      # hit — that mismatch was the cause of "Load failed" on every save.
+      # Hardcoded to the actual deployed API URL instead.
+      - key: VITE_API_URL
+        value: https://flowops-api-4frp.onrender.com
     routes:
       - type: rewrite
         source: /*
