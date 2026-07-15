@@ -68,6 +68,47 @@ export async function createEstimate(req: Request, res: Response) {
   res.status(201).json(estimate)
 }
 
+export async function updateEstimate(req: Request, res: Response) {
+  const { name, taxCents = 0, lineItems } = req.body as {
+    name: string
+    taxCents?: number
+    lineItems: LineItemInput[]
+  }
+  if (!name || !Array.isArray(lineItems) || lineItems.length === 0) {
+    throw new AppError(400, 'name and at least one line item are required')
+  }
+
+  const existing = await prisma.estimate.findUnique({ where: { id: req.params.id } })
+  if (!existing) throw new AppError(404, 'Estimate not found')
+  if (existing.status !== 'DRAFT' && existing.status !== 'PRESENTED') {
+    throw new AppError(400, 'Only a draft or presented estimate can be edited')
+  }
+
+  const subtotalCents = sumLineItems(lineItems)
+
+  const estimate = await prisma.estimate.update({
+    where: { id: req.params.id },
+    data: {
+      name,
+      subtotalCents,
+      taxCents,
+      totalCents: subtotalCents + taxCents,
+      lineItems: {
+        deleteMany: {},
+        create: lineItems.map((item) => ({
+          pricebookItemId: item.pricebookItemId,
+          description: item.description,
+          quantity: item.quantity ?? 1,
+          unitPriceCents: item.unitPriceCents,
+          totalCents: item.unitPriceCents * (item.quantity ?? 1),
+        })),
+      },
+    },
+    include: { lineItems: true },
+  })
+  res.json(estimate)
+}
+
 export async function updateEstimateStatus(req: Request, res: Response) {
   const { status } = req.body
   if (!status) throw new AppError(400, 'status is required')

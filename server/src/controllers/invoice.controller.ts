@@ -101,13 +101,62 @@ export async function createInvoice(req: Request, res: Response) {
   res.status(201).json(invoice)
 }
 
-export async function updateInvoiceStatus(req: Request, res: Response) {
-  const { status } = req.body
-  if (!status) throw new AppError(400, 'status is required')
+// Editing is only safe before money has moved - once a payment exists the
+// balance/total are load-bearing for that payment, so line items are locked.
+export async function updateInvoice(req: Request, res: Response) {
+  const { taxCents = 0, lineItems } = req.body as { taxCents?: number; lineItems: LineItemInput[] }
+  if (!Array.isArray(lineItems) || lineItems.length === 0) {
+    throw new AppError(400, 'At least one line item is required')
+  }
+
+  const existing = await prisma.invoice.findUnique({
+    where: { id: req.params.id },
+    include: { payments: true },
+  })
+  if (!existing) throw new AppError(404, 'Invoice not found')
+  if (existing.payments.length > 0) throw new AppError(400, 'Cannot edit an invoice that already has payments recorded')
+  if (existing.status === 'VOID') throw new AppError(400, 'Cannot edit a void invoice')
+
+  const subtotalCents = sumLineItems(lineItems)
+  const totalCents = subtotalCents + taxCents
+
   const invoice = await prisma.invoice.update({
     where: { id: req.params.id },
-    data: { status },
+    data: {
+      subtotalCents,
+      taxCents,
+      totalCents,
+      balanceCents: totalCents,
+      lineItems: {
+        deleteMany: {},
+        create: lineItems.map((item) => ({
+          pricebookItemId: item.pricebookItemId,
+          description: item.description,
+          quantity: item.quantity ?? 1,
+          unitPriceCents: item.unitPriceCents,
+          totalCents: item.unitPriceCents * (item.quantity ?? 1),
+        })),
+      },
+    },
+    include: { lineItems: true, payments: true },
   })
+  res.json(invoice)
+}
+
+export async function sendInvoice(req: Request, res: Response) {
+  const invoice = await prisma.invoice.update({ where: { id: req.params.id }, data: { status: 'SENT' } })
+  res.json(invoice)
+}
+
+export async function voidInvoice(req: Request, res: Response) {
+  const existing = await prisma.invoice.findUnique({
+    where: { id: req.params.id },
+    include: { payments: true },
+  })
+  if (!existing) throw new AppError(404, 'Invoice not found')
+  if (existing.payments.length > 0) throw new AppError(400, 'Cannot void an invoice that already has payments recorded')
+
+  const invoice = await prisma.invoice.update({ where: { id: req.params.id }, data: { status: 'VOID' } })
   res.json(invoice)
 }
 

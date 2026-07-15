@@ -104,10 +104,17 @@ export async function createJob(req: Request, res: Response) {
 // plus the explicit actions below - it is never set directly from a generic
 // PATCH, so it can't be pushed into an inconsistent value from the UI.
 export async function updateJob(req: Request, res: Response) {
-  const { priority, summary, tagIds } = req.body
+  const { jobTypeId, priority, summary, tagIds } = req.body
+
+  if (jobTypeId) {
+    const jobType = await prisma.jobType.findUnique({ where: { id: jobTypeId } })
+    if (!jobType) throw new AppError(404, 'Job type not found')
+  }
+
   const job = await prisma.job.update({
     where: { id: req.params.id },
     data: {
+      jobTypeId,
       priority,
       summary,
       tags: tagIds ? { set: tagIds.map((id: string) => ({ id })) } : undefined,
