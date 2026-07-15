@@ -13,9 +13,10 @@ import invoiceRoutes from './routes/invoice.routes.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 const PORT = process.env.PORT ?? 5002
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN
 
 const app = express()
-app.use(cors())
+app.use(cors({ origin: CLIENT_ORIGIN ?? true }))
 app.use(express.json())
 
 app.use('/api/health', healthRoute)

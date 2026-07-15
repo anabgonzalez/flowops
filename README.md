@@ -40,6 +40,17 @@ npm run dev
 
 Runs on `http://localhost:5173` and proxies `/api` requests to the backend.
 
+## Deployment
+
+Deployed via a [Render Blueprint](https://render.com/docs/infrastructure-as-code) (`render.yaml` at the repo root) — one dashboard connects the repo and stands up both services:
+
+- **flowops-api** — Node web service (free plan; sleeps after 15 min idle, ~30-50s cold start on the next request)
+- **flowops-client** — static site (free plan; no sleep, serves the built React app with SPA routing)
+
+Database is external: [Neon](https://neon.tech) Postgres (free plan, no credit card, no expiry). Render's own free Postgres expires after 90 days, so it's not used here.
+
+Setup: create a Neon project, copy its **direct** (non-pooled) connection string, then in Render "New → Blueprint", connect this repo, and paste that connection string in as `DATABASE_URL` when prompted (it's marked `sync: false` in `render.yaml` so it's never committed). The client's `VITE_API_URL` is wired automatically via Render's `fromService` to the API's URL.
+
 ## Project structure
 
 ```
