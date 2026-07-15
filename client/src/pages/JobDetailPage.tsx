@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { AppointmentStatus, Job, JobPriority, JobType, PaymentMethod, PricebookItem, Tag, Timeframe, User } from '../api/types'
+import type { AppointmentStatus, ContactRole, Job, JobPriority, JobType, PaymentMethod, PricebookItem, Tag, Timeframe, User } from '../api/types'
 import { Badge, Button, Card, formatCents, Input, Label, Select, TagChip } from '../components/ui'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { RichTextView } from '../components/RichTextView'
@@ -279,8 +279,6 @@ function JobDetailsHeader({
     )
   }
 
-  const primaryContact = job.location.contacts.find((c) => c.isPrimary) ?? job.location.contacts[0]
-
   return (
     <div className="mt-1 flex items-start justify-between">
       <div>
@@ -289,13 +287,7 @@ function JobDetailsHeader({
         <p className="mt-1 text-sm text-slate-600">
           {job.location.customer.name} · {job.location.addressLine1}, {job.location.city}, {job.location.state}
         </p>
-        {primaryContact && (
-          <p className="mt-1 text-sm text-slate-500">
-            On-site: {primaryContact.name}
-            {primaryContact.phone ? ` · ${primaryContact.phone}` : ''}
-          </p>
-        )}
-        <ContactIcons job={job} />
+        <ContactRows job={job} />
         {job.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {job.tags.map((t) => (
@@ -315,41 +307,80 @@ function JobDetailsHeader({
   )
 }
 
-// Lets a dispatcher call/text/email the customer straight from the job
-// without drilling into the full customer profile. Prefers the on-site
-// contact (who actually answers the phone) and falls back to the
-// account-holder's info on the customer record.
-function ContactIcons({ job }: { job: Job }) {
-  const primaryContact = job.location.contacts.find((c) => c.isPrimary) ?? job.location.contacts[0]
-  const phone = primaryContact?.phone || job.location.customer.phone
-  const email = primaryContact?.email || job.location.customer.email
+const contactRoleLabels: Record<ContactRole, string> = {
+  TENANT: 'Tenant',
+  PROPERTY_MANAGER: 'Property Manager',
+  OTHER: 'On-site Contact',
+}
 
+// A job's location can have two parties who need contacting for different
+// reasons: the on-site contact (e.g. a tenant, who coordinates access/
+// scheduling) and the customer on the location (e.g. a landlord, who
+// approves/pays - estimates scheduled through the tenant still need the
+// owner's sign-off). Show both, each with their own call/text/email
+// shortcuts, rather than picking just one.
+function ContactRows({ job }: { job: Job }) {
+  const primaryContact = job.location.contacts.find((c) => c.isPrimary) ?? job.location.contacts[0]
+  const customer = job.location.customer
+
+  return (
+    <div className="mt-1 space-y-1">
+      {primaryContact && (
+        <ContactRow
+          label={contactRoleLabels[primaryContact.role]}
+          name={primaryContact.name}
+          phone={primaryContact.phone}
+          email={primaryContact.email}
+        />
+      )}
+      <ContactRow label="Owner" name={customer.name} phone={customer.phone} email={customer.email} />
+    </div>
+  )
+}
+
+function ContactRow({
+  label,
+  name,
+  phone,
+  email,
+}: {
+  label: string
+  name: string
+  phone: string | null
+  email: string | null
+}) {
   if (!phone && !email) return null
 
   return (
-    <div className="mt-2 flex items-center gap-3">
-      {phone && (
-        <a href={`tel:${phone}`} aria-label="Call customer" title={`Call ${phone}`} className="text-slate-500 hover:text-titan-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-          </svg>
-        </a>
-      )}
-      {phone && (
-        <a href={`sms:${phone}`} aria-label="Text customer" title={`Text ${phone}`} className="text-slate-500 hover:text-titan-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </a>
-      )}
-      {email && (
-        <a href={`mailto:${email}`} aria-label="Email customer" title={`Email ${email}`} className="text-slate-500 hover:text-titan-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-            <path d="m22 6-10 7L2 6" />
-          </svg>
-        </a>
-      )}
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <p className="text-sm text-slate-500">
+        {label}: {name}
+        {phone ? ` · ${phone}` : ''}
+      </p>
+      <div className="flex items-center gap-2">
+        {phone && (
+          <a href={`tel:${phone}`} aria-label={`Call ${name}`} title={`Call ${phone}`} className="text-slate-500 hover:text-titan-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+            </svg>
+          </a>
+        )}
+        {phone && (
+          <a href={`sms:${phone}`} aria-label={`Text ${name}`} title={`Text ${phone}`} className="text-slate-500 hover:text-titan-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </a>
+        )}
+        {email && (
+          <a href={`mailto:${email}`} aria-label={`Email ${name}`} title={`Email ${email}`} className="text-slate-500 hover:text-titan-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+              <path d="m22 6-10 7L2 6" />
+            </svg>
+          </a>
+        )}
+      </div>
     </div>
   )
 }
