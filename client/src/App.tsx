@@ -1,17 +1,27 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { Layout } from './components/Layout'
+import { CustomersPage } from './pages/CustomersPage'
+import { CustomerDetailPage } from './pages/CustomerDetailPage'
+import { JobsPage } from './pages/JobsPage'
+import { JobDetailPage } from './pages/JobDetailPage'
+import { PricebookPage } from './pages/PricebookPage'
+import { TechniciansPage } from './pages/TechniciansPage'
+import { TechnicianDetailPage } from './pages/TechnicianDetailPage'
+
 function App() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-3xl font-semibold text-slate-900">FlowOps</h1>
-        <p className="mt-2 text-slate-500">
-          Field service management, rebuilt. See{' '}
-          <code className="rounded bg-slate-200 px-1.5 py-0.5">
-            docs/PRODUCT_PLAN.md
-          </code>{' '}
-          for the build plan.
-        </p>
-      </div>
-    </div>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Navigate to="/jobs" replace />} />
+        <Route path="/jobs" element={<JobsPage />} />
+        <Route path="/jobs/:id" element={<JobDetailPage />} />
+        <Route path="/customers" element={<CustomersPage />} />
+        <Route path="/customers/:id" element={<CustomerDetailPage />} />
+        <Route path="/pricebook" element={<PricebookPage />} />
+        <Route path="/technicians" element={<TechniciansPage />} />
+        <Route path="/technicians/:id" element={<TechnicianDetailPage />} />
+      </Route>
+    </Routes>
   )
 }
 
