@@ -1,6 +1,9 @@
-// FlowOps data model. See docs/PRODUCT_PLAN.md for the entities this
-// will grow to cover (Customer, Location, Job, Appointment, Estimate,
-// Invoice, PricebookItem, ...).
+// FlowOps data model. See docs/PRODUCT_PLAN.md for the full feature plan.
+// This file currently covers Phase 1 (core job lifecycle): CRM, Job/
+// Appointment scheduling, Pricebook, Estimates, Invoicing & Payments.
+//
+// Money is stored as integer cents (e.g. priceCents) to avoid floating
+// point rounding errors; convert to dollars for display only.
 
 generator client {
   provider = "prisma-client"
@@ -9,4 +12,230 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  CSR
+  DISPATCHER
+  TECHNICIAN
+  SALES_REP
+  OWNER
+}
+
+enum CustomerType {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
+enum JobStatus {
+  UNSCHEDULED
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  ON_HOLD
+}
+
+enum JobPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  DISPATCHED
+  EN_ROUTE
+  ON_SITE
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+enum PricebookItemType {
+  SERVICE
+  MATERIAL
+  EQUIPMENT
+}
+
+enum EstimateStatus {
+  DRAFT
+  PRESENTED
+  APPROVED
+  DECLINED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PARTIALLY_PAID
+  PAID
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  CARD
+  ACH
+  FINANCING
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointments Appointment[]
+}
+
+model Customer {
+  id        String       @id @default(cuid())
+  name      String
+  email     String?
+  phone     String?
+  type      CustomerType @default(RESIDENTIAL)
+  notes     String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  locations Location[]
+}
+
+model Location {
+  id           String   @id @default(cuid())
+  customerId   String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  postalCode   String
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  jobs     Job[]
+}
+
+model Job {
+  id         String      @id @default(cuid())
+  locationId String
+  jobType    String
+  status     JobStatus   @default(UNSCHEDULED)
+  priority   JobPriority @default(NORMAL)
+  summary    String
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  location     Location      @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+  estimates    Estimate[]
+  invoices     Invoice[]
+}
+
+model Appointment {
+  id           String            @id @default(cuid())
+  jobId        String
+  technicianId String?
+  start        DateTime
+  end          DateTime
+  status       AppointmentStatus @default(SCHEDULED)
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  job        Job   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  technician User? @relation(fields: [technicianId], references: [id])
+}
+
+model PricebookItem {
+  id          String            @id @default(cuid())
+  code        String            @unique
+  name        String
+  description String?
+  type        PricebookItemType
+  costCents   Int
+  priceCents  Int
+  taxable     Boolean           @default(true)
+  active      Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  estimateLineItems EstimateLineItem[]
+  invoiceLineItems  InvoiceLineItem[]
+}
+
+model Estimate {
+  id            String         @id @default(cuid())
+  jobId         String
+  name          String
+  status        EstimateStatus @default(DRAFT)
+  subtotalCents Int            @default(0)
+  taxCents      Int            @default(0)
+  totalCents    Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  job       Job                @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  lineItems EstimateLineItem[]
+}
+
+model EstimateLineItem {
+  id              String  @id @default(cuid())
+  estimateId      String
+  pricebookItemId String?
+  description     String
+  quantity        Int     @default(1)
+  unitPriceCents  Int
+  totalCents      Int
+
+  estimate      Estimate       @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  pricebookItem PricebookItem? @relation(fields: [pricebookItemId], references: [id])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  jobId         String
+  invoiceNumber String        @unique
+  status        InvoiceStatus @default(DRAFT)
+  subtotalCents Int           @default(0)
+  taxCents      Int           @default(0)
+  totalCents    Int           @default(0)
+  balanceCents  Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  job       Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  lineItems InvoiceLineItem[]
+  payments  Payment[]
+}
+
+model InvoiceLineItem {
+  id              String  @id @default(cuid())
+  invoiceId       String
+  pricebookItemId String?
+  description     String
+  quantity        Int     @default(1)
+  unitPriceCents  Int
+  totalCents      Int
+
+  invoice       Invoice        @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  pricebookItem PricebookItem? @relation(fields: [pricebookItemId], references: [id])
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  invoiceId   String
+  amountCents Int
+  method      PaymentMethod
+  paidAt      DateTime      @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }
