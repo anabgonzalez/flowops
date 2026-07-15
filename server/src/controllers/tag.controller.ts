@@ -35,3 +35,17 @@ export async function updateTag(req: Request, res: Response) {
   })
   res.json(tag)
 }
+
+// Tags are joined to jobs/customers/locations through implicit many-to-many
+// tables, so deleting a tag just untags whatever had it - no guard needed.
+export async function deleteTag(req: Request, res: Response) {
+  await prisma.tag.delete({ where: { id: req.params.id } })
+  res.status(204).send()
+}
+
+export async function deleteAllTags(req: Request, res: Response) {
+  const category = parseCategory(req.query.category)
+  if (!category) throw new AppError(400, 'category is required')
+  const { count } = await prisma.tag.deleteMany({ where: { category } })
+  res.json({ deletedCount: count })
+}

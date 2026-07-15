@@ -173,6 +173,7 @@ export interface JobType {
   name: string
   defaultPriority: JobPriority
   active: boolean
+  _count?: { jobs: number }
 }
 
 export interface Job {

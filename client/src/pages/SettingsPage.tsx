@@ -48,11 +48,33 @@ function JobTypesSection() {
     load()
   }
 
+  async function handleDelete(jobType: JobType) {
+    if (!confirm(`Delete job type "${jobType.name}"?`)) return
+    try {
+      await api.del(`/job-types/${jobType.id}`)
+      load()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to delete job type')
+    }
+  }
+
+  async function handleDeleteUnused() {
+    if (!confirm('Delete every job type that has no jobs on it? Job types still in use will be left alone.')) return
+    const result = await api.del<{ deletedCount: number; skippedCount: number }>('/job-types/unused')
+    load()
+    alert(`Deleted ${result.deletedCount} unused job type(s).`)
+  }
+
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="font-medium text-slate-900">Job Types</h2>
-        <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Job Type'}</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleDeleteUnused}>
+            Delete Unused
+          </Button>
+          <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Job Type'}</Button>
+        </div>
       </div>
       <p className="text-sm text-slate-500">
         Each job type carries a default priority, applied automatically when it's picked on a new job (still
@@ -91,10 +113,16 @@ function JobTypesSection() {
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-slate-900">{jt.name}</span>
                   <Badge value={jt.defaultPriority} />
+                  {!!jt._count?.jobs && <span className="text-xs text-slate-400">{jt._count.jobs} job(s)</span>}
                 </div>
-                <Button variant="secondary" onClick={() => toggleActive(jt)}>
-                  {jt.active ? 'Deactivate' : 'Activate'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="secondary" onClick={() => toggleActive(jt)}>
+                    {jt.active ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button variant="danger" onClick={() => handleDelete(jt)}>
+                    Delete
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
@@ -135,11 +163,29 @@ function TagsSection({ category, title, placeholder }: { category: TagCategory; 
     load()
   }
 
+  async function handleDelete(tag: Tag) {
+    if (!confirm(`Delete tag "${tag.name}"? It will be removed from anything currently tagged with it.`)) return
+    await api.del(`/tags/${tag.id}`)
+    load()
+  }
+
+  async function handleDeleteAll() {
+    if (tags.length === 0) return
+    if (!confirm(`Delete all ${tags.length} ${title.toLowerCase()}? It's removed from anything currently tagged.`)) return
+    await api.del(`/tags?category=${category}`)
+    load()
+  }
+
   return (
     <section className="space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="font-medium text-slate-900">{title}</h2>
-        <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Tag'}</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={handleDeleteAll}>
+            Delete All
+          </Button>
+          <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Tag'}</Button>
+        </div>
       </div>
 
       {showForm && (
@@ -185,9 +231,14 @@ function TagsSection({ category, title, placeholder }: { category: TagCategory; 
             <Card key={tag.id} className={tag.active ? '' : 'opacity-50'}>
               <div className="flex items-center justify-between">
                 <TagChip name={tag.name} color={tag.color} />
-                <Button variant="secondary" onClick={() => toggleActive(tag)}>
-                  {tag.active ? 'Deactivate' : 'Activate'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="secondary" onClick={() => toggleActive(tag)}>
+                    {tag.active ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button variant="danger" onClick={() => handleDelete(tag)}>
+                    Delete
+                  </Button>
+                </div>
               </div>
             </Card>
           ))}
