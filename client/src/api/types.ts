@@ -10,7 +10,8 @@ export type AppointmentStatus =
   | 'IN_PROGRESS'
   | 'COMPLETED'
   | 'CANCELED'
-export type PricebookItemType = 'SERVICE' | 'MATERIAL' | 'EQUIPMENT'
+export type PricebookItemType = 'SERVICE' | 'MATERIAL' | 'EQUIPMENT' | 'OTHER'
+export type PricingMethod = 'FLAT_RATE' | 'TIME_AND_MATERIALS'
 export type EstimateStatus = 'DRAFT' | 'PRESENTED' | 'APPROVED' | 'DECLINED'
 export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'VOID'
 export type PaymentMethod = 'CASH' | 'CHECK' | 'CARD' | 'ACH' | 'FINANCING'
@@ -71,16 +72,46 @@ export interface LocationWithCustomer extends Location {
   customer: Customer
 }
 
+export interface PricebookCategory {
+  id: string
+  name: string
+  parentId: string | null
+}
+
+export interface PricebookItemComponent {
+  id: string
+  parentItemId: string
+  componentItemId: string
+  quantity: number
+  componentItem: PricebookItem
+}
+
 export interface PricebookItem {
   id: string
   code: string
   name: string
   description: string | null
   type: PricebookItemType
+  categoryId: string | null
+  category: PricebookCategory | null
   costCents: number
   priceCents: number
+  memberPriceCents: number | null
+  addOnPriceCents: number | null
+  markupPercent: number | null
+  pricingMethod: PricingMethod
+  laborRateCents: number | null
+  estimatedDurationMinutes: number | null
+  unitOfMeasure: string
   taxable: boolean
+  nonDiscountable: boolean
+  warrantyDurationMonths: number | null
+  warrantyTerms: string | null
+  vendorName: string | null
+  vendorPartNumber: string | null
+  imageUrl: string | null
   active: boolean
+  components: PricebookItemComponent[]
 }
 
 export interface LineItem {

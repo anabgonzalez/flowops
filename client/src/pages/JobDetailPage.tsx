@@ -374,7 +374,7 @@ function AppointmentCard({
             >
               {APPOINTMENT_STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s.replace('_', ' ')}
+                  {s.replaceAll('_', ' ')}
                 </option>
               ))}
             </Select>

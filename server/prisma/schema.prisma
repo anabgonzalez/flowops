@@ -58,6 +58,12 @@ enum PricebookItemType {
   SERVICE
   MATERIAL
   EQUIPMENT
+  OTHER
+}
+
+enum PricingMethod {
+  FLAT_RATE
+  TIME_AND_MATERIALS
 }
 
 enum EstimateStatus {
@@ -215,21 +221,81 @@ model Appointment {
   technician User? @relation(fields: [technicianId], references: [id])
 }
 
+// Categories/subcategories are one flat self-referential tree (parentId
+// null = top-level category). Applies across all item types - e.g.
+// "HVAC > Repair" can hold services, materials, and equipment alike.
+model PricebookCategory {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parent   PricebookCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children PricebookCategory[] @relation("CategoryHierarchy")
+  items    PricebookItem[]
+
+  @@unique([name, parentId])
+}
+
 model PricebookItem {
   id          String            @id @default(cuid())
   code        String            @unique
   name        String
   description String?
   type        PricebookItemType
-  costCents   Int
-  priceCents  Int
-  taxable     Boolean           @default(true)
-  active      Boolean           @default(true)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+  categoryId  String?
 
+  // Pricing
+  costCents        Int
+  priceCents       Int
+  memberPriceCents Int?
+  addOnPriceCents  Int?
+  markupPercent    Float?
+
+  // Flat rate bundles labor+materials+overhead into one price. Time &
+  // materials bills a separate hourly labor rate plus materials at cost -
+  // laborRateCents only applies when pricingMethod is TIME_AND_MATERIALS.
+  pricingMethod  PricingMethod @default(FLAT_RATE)
+  laborRateCents Int?
+
+  estimatedDurationMinutes Int?
+  unitOfMeasure            String  @default("each")
+  taxable                  Boolean @default(true)
+  nonDiscountable          Boolean @default(false)
+
+  warrantyDurationMonths Int?
+  warrantyTerms          String?
+
+  vendorName       String?
+  vendorPartNumber String?
+  imageUrl         String?
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  category          PricebookCategory?       @relation(fields: [categoryId], references: [id])
   estimateLineItems EstimateLineItem[]
   invoiceLineItems  InvoiceLineItem[]
+  components        PricebookItemComponent[] @relation("ParentItem")
+  usedInComponents  PricebookItemComponent[] @relation("ComponentItem")
+}
+
+// Default bill-of-materials for a Service/Equipment item - e.g. "AC
+// Install" typically needs a condenser, line set, and disconnect. Shown
+// as reference info on the pricebook item; quantities on an actual
+// estimate/invoice are still entered per job, not auto-expanded from this.
+model PricebookItemComponent {
+  id              String @id @default(cuid())
+  parentItemId    String
+  componentItemId String
+  quantity        Int    @default(1)
+
+  parentItem    PricebookItem @relation("ParentItem", fields: [parentItemId], references: [id], onDelete: Cascade)
+  componentItem PricebookItem @relation("ComponentItem", fields: [componentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([parentItemId, componentItemId])
 }
 
 model Estimate {

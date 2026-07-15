@@ -34,7 +34,7 @@ export function TechnicianDetailPage() {
     <div className="space-y-4">
       <div>
         <h1 className="text-xl font-semibold text-slate-900">{user.name}</h1>
-        <p className="text-sm text-slate-500">{user.role.replace('_', ' ')}'s schedule</p>
+        <p className="text-sm text-slate-500">{user.role.replaceAll('_', ' ')}'s schedule</p>
       </div>
 
       {appointments.length === 0 ? (

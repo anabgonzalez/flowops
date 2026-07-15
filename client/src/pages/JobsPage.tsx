@@ -254,7 +254,7 @@ export function JobsPage() {
           <option value="">All statuses</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
-              {s.replace('_', ' ')}
+              {s.replaceAll('_', ' ')}
             </option>
           ))}
         </Select>

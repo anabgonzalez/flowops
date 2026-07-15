@@ -82,7 +82,7 @@ export function Badge({ value }: { value: string }) {
     <span
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${badgeColors[value] ?? 'bg-slate-100 text-slate-700'}`}
     >
-      {value.replace('_', ' ')}
+      {value.replaceAll('_', ' ')}
     </span>
   )
 }
