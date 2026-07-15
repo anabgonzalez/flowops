@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { AppointmentStatus, Job, JobPriority, JobType, PaymentMethod, PricebookItem, User } from '../api/types'
+import type { AppointmentStatus, Job, JobPriority, JobType, PaymentMethod, PricebookItem, Tag, Timeframe, User } from '../api/types'
 import { Badge, Button, Card, formatCents, Input, Label, Select, TagChip } from '../components/ui'
 import { RichTextEditor } from '../components/RichTextEditor'
 import { RichTextView } from '../components/RichTextView'
 import { emptyLineItem, LineItemsEditor, type LineItemDraft } from '../components/LineItemsEditor'
+import { TagPicker } from '../components/TagPicker'
+import { ScheduleFields, toDateInput, toLocalDateTimeInput as toLocalInput } from '../components/ScheduleFields'
 
 const APPOINTMENT_STATUSES: AppointmentStatus[] = [
   'SCHEDULED',
@@ -21,18 +23,15 @@ function toDollars(cents: number) {
   return (cents / 100).toString()
 }
 
-function toLocalInput(iso: string) {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
 export function JobDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [job, setJob] = useState<Job | null>(null)
   const [technicians, setTechnicians] = useState<User[]>([])
   const [pricebookItems, setPricebookItems] = useState<PricebookItem[]>([])
   const [jobTypes, setJobTypes] = useState<JobType[]>([])
+  const [jobTags, setJobTags] = useState<Tag[]>([])
+  const [timeframes, setTimeframes] = useState<Timeframe[]>([])
 
   function load() {
     if (!id) return
@@ -44,6 +43,8 @@ export function JobDetailPage() {
     api.get<User[]>('/users').then((users) => setTechnicians(users.filter((u) => u.role === 'TECHNICIAN')))
     api.get<PricebookItem[]>('/pricebook-items?active=true').then(setPricebookItems)
     api.get<JobType[]>('/job-types?active=true').then(setJobTypes)
+    api.get<Tag[]>('/tags?category=JOB&active=true').then(setJobTags)
+    api.get<Timeframe[]>('/timeframes?active=true').then(setTimeframes)
   }, [])
 
   if (!job) return <p className="text-sm text-slate-500">Loading...</p>
@@ -66,6 +67,13 @@ export function JobDetailPage() {
     load()
   }
 
+  async function handleDelete() {
+    if (!id) return
+    if (!confirm('Delete this job? All of its appointments, estimates, and invoices will be permanently deleted too.')) return
+    await api.del(`/jobs/${id}`)
+    navigate('/jobs')
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -73,7 +81,7 @@ export function JobDetailPage() {
           &larr; Back to jobs
         </Link>
 
-        <JobDetailsHeader job={job} jobTypes={jobTypes} onChange={load} />
+        <JobDetailsHeader job={job} jobTypes={jobTypes} jobTags={jobTags} onChange={load} />
 
         <div className="mt-3 flex gap-2">
           {job.status === 'ON_HOLD' ? (
@@ -90,30 +98,51 @@ export function JobDetailPage() {
               Cancel Job
             </Button>
           )}
+          <Button variant="danger" onClick={handleDelete}>
+            Delete Job
+          </Button>
         </div>
         <p className="mt-2 text-xs text-slate-400">
           Status updates automatically as appointments are scheduled and completed.
         </p>
       </div>
 
-      <AppointmentsSection jobId={job.id} appointments={job.appointments} technicians={technicians} onChange={load} />
+      <AppointmentsSection
+        jobId={job.id}
+        appointments={job.appointments}
+        technicians={technicians}
+        timeframes={timeframes}
+        onChange={load}
+      />
       <EstimatesSection jobId={job.id} estimates={job.estimates} pricebookItems={pricebookItems} onChange={load} />
       <InvoicesSection jobId={job.id} job={job} pricebookItems={pricebookItems} onChange={load} />
     </div>
   )
 }
 
-function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: JobType[]; onChange: () => void }) {
+function JobDetailsHeader({
+  job,
+  jobTypes,
+  jobTags,
+  onChange,
+}: {
+  job: Job
+  jobTypes: JobType[]
+  jobTags: Tag[]
+  onChange: () => void
+}) {
   const [editing, setEditing] = useState(false)
   const [jobTypeId, setJobTypeId] = useState(job.jobType.id)
   const [priority, setPriority] = useState<JobPriority>(job.priority)
   const [summary, setSummary] = useState(job.summary)
+  const [tagIds, setTagIds] = useState<string[]>(job.tags.map((t) => t.id))
   const [error, setError] = useState<string | null>(null)
 
   function startEdit() {
     setJobTypeId(job.jobType.id)
     setPriority(job.priority)
     setSummary(job.summary)
+    setTagIds(job.tags.map((t) => t.id))
     setError(null)
     setEditing(true)
   }
@@ -121,7 +150,7 @@ function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: Job
   async function handleSave() {
     setError(null)
     try {
-      await api.patch(`/jobs/${job.id}`, { jobTypeId, priority, summary })
+      await api.patch(`/jobs/${job.id}`, { jobTypeId, priority, summary, tagIds })
       setEditing(false)
       onChange()
     } catch (err) {
@@ -158,6 +187,10 @@ function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: Job
             <Label>Summary</Label>
             <RichTextEditor value={summary} onChange={setSummary} />
           </div>
+          <div>
+            <Label>Tags</Label>
+            <TagPicker availableTags={jobTags} selectedIds={tagIds} onChange={setTagIds} placeholder="Search job tags..." />
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button onClick={handleSave}>Save</Button>
@@ -186,6 +219,7 @@ function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: Job
             {primaryContact.phone ? ` · ${primaryContact.phone}` : ''}
           </p>
         )}
+        <ContactIcons job={job} />
         {job.tags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {job.tags.map((t) => (
@@ -205,19 +239,62 @@ function JobDetailsHeader({ job, jobTypes, onChange }: { job: Job; jobTypes: Job
   )
 }
 
+// Lets a dispatcher call/text/email the customer straight from the job
+// without drilling into the full customer profile. Prefers the on-site
+// contact (who actually answers the phone) and falls back to the
+// account-holder's info on the customer record.
+function ContactIcons({ job }: { job: Job }) {
+  const primaryContact = job.location.contacts.find((c) => c.isPrimary) ?? job.location.contacts[0]
+  const phone = primaryContact?.phone || job.location.customer.phone
+  const email = primaryContact?.email || job.location.customer.email
+
+  if (!phone && !email) return null
+
+  return (
+    <div className="mt-2 flex items-center gap-3">
+      {phone && (
+        <a href={`tel:${phone}`} aria-label="Call customer" title={`Call ${phone}`} className="text-slate-500 hover:text-titan-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+          </svg>
+        </a>
+      )}
+      {phone && (
+        <a href={`sms:${phone}`} aria-label="Text customer" title={`Text ${phone}`} className="text-slate-500 hover:text-titan-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          </svg>
+        </a>
+      )}
+      {email && (
+        <a href={`mailto:${email}`} aria-label="Email customer" title={`Email ${email}`} className="text-slate-500 hover:text-titan-600">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+            <path d="m22 6-10 7L2 6" />
+          </svg>
+        </a>
+      )}
+    </div>
+  )
+}
+
 function AppointmentsSection({
   jobId,
   appointments,
   technicians,
+  timeframes,
   onChange,
 }: {
   jobId: string
   appointments: Job['appointments']
   technicians: User[]
+  timeframes: Timeframe[]
   onChange: () => void
 }) {
   const [showForm, setShowForm] = useState(false)
   const [technicianId, setTechnicianId] = useState('')
+  const [date, setDate] = useState('')
+  const [timeframeId, setTimeframeId] = useState('custom')
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -233,6 +310,8 @@ function AppointmentsSection({
       })
       setShowForm(false)
       setTechnicianId('')
+      setDate('')
+      setTimeframeId('custom')
       setStart('')
       setEnd('')
       onChange()
@@ -264,16 +343,19 @@ function AppointmentsSection({
                 ))}
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="appt-start">Start</Label>
-                <Input id="appt-start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} required />
-              </div>
-              <div>
-                <Label htmlFor="appt-end">End</Label>
-                <Input id="appt-end" type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} required />
-              </div>
-            </div>
+            <ScheduleFields
+              idPrefix="appt"
+              timeframes={timeframes}
+              date={date}
+              setDate={setDate}
+              timeframeId={timeframeId}
+              setTimeframeId={setTimeframeId}
+              start={start}
+              setStart={setStart}
+              end={end}
+              setEnd={setEnd}
+              required
+            />
             {error && <p className="text-sm text-red-600">{error}</p>}
             <Button type="submit">Save Appointment</Button>
           </form>
@@ -284,7 +366,7 @@ function AppointmentsSection({
         <p className="text-sm text-slate-500">No appointments scheduled.</p>
       ) : (
         appointments.map((appt) => (
-          <AppointmentCard key={appt.id} appointment={appt} technicians={technicians} onChange={onChange} />
+          <AppointmentCard key={appt.id} appointment={appt} technicians={technicians} timeframes={timeframes} onChange={onChange} />
         ))
       )}
     </section>
@@ -294,14 +376,18 @@ function AppointmentsSection({
 function AppointmentCard({
   appointment,
   technicians,
+  timeframes,
   onChange,
 }: {
   appointment: Job['appointments'][number]
   technicians: User[]
+  timeframes: Timeframe[]
   onChange: () => void
 }) {
   const [editing, setEditing] = useState(false)
   const [technicianId, setTechnicianId] = useState(appointment.technicianId ?? '')
+  const [date, setDate] = useState(toDateInput(appointment.start))
+  const [timeframeId, setTimeframeId] = useState('custom')
   const [start, setStart] = useState(toLocalInput(appointment.start))
   const [end, setEnd] = useState(toLocalInput(appointment.end))
   const [status, setStatus] = useState<AppointmentStatus>(appointment.status)
@@ -310,6 +396,8 @@ function AppointmentCard({
 
   function startEdit() {
     setTechnicianId(appointment.technicianId ?? '')
+    setDate(toDateInput(appointment.start))
+    setTimeframeId('custom')
     setStart(toLocalInput(appointment.start))
     setEnd(toLocalInput(appointment.end))
     setStatus(appointment.status)
@@ -350,21 +438,18 @@ function AppointmentCard({
               ))}
             </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor={`edit-appt-start-${appointment.id}`}>Start</Label>
-              <Input
-                id={`edit-appt-start-${appointment.id}`}
-                type="datetime-local"
-                value={start}
-                onChange={(e) => setStart(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor={`edit-appt-end-${appointment.id}`}>End</Label>
-              <Input id={`edit-appt-end-${appointment.id}`} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />
-            </div>
-          </div>
+          <ScheduleFields
+            idPrefix={`edit-appt-${appointment.id}`}
+            timeframes={timeframes}
+            date={date}
+            setDate={setDate}
+            timeframeId={timeframeId}
+            setTimeframeId={setTimeframeId}
+            start={start}
+            setStart={setStart}
+            end={end}
+            setEnd={setEnd}
+          />
           <div>
             <Label htmlFor={`edit-appt-status-${appointment.id}`}>Status</Label>
             <Select

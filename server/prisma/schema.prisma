@@ -188,6 +188,20 @@ model Tag {
   locations Location[]
 }
 
+// A reusable scheduling window (e.g. "Morning", "8-10 AM") so dispatchers
+// pick a time block instead of typing exact start/end times. startTime/
+// endTime are "HH:mm" 24-hour strings, combined with a chosen date on the
+// client to produce the actual appointment start/end.
+model Timeframe {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  startTime String
+  endTime   String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Job {
   id         String      @id @default(cuid())
   locationId String

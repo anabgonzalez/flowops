@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { ContactRole, Customer, CustomerType, Location, LocationContact, Tag } from '../api/types'
 import { Button, Card, Input, Label, Select, TagChip } from '../components/ui'
-import { tagChipClass } from '../components/tagPalette'
+import { TagPicker } from '../components/TagPicker'
 
 export function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -134,10 +134,6 @@ function CustomerHeader({
     setEditing(true)
   }
 
-  function toggleTag(tagId: string) {
-    setTagIds((ids) => (ids.includes(tagId) ? ids.filter((t) => t !== tagId) : [...ids, tagId]))
-  }
-
   async function handleSave() {
     setError(null)
     try {
@@ -180,25 +176,10 @@ function CustomerHeader({
               <option value="COMMERCIAL">Commercial</option>
             </Select>
           </div>
-          {availableTags.length > 0 && (
-            <div>
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`cursor-pointer rounded-full px-2 py-0.5 text-xs font-semibold ${tagChipClass(tag.color)} ${
-                      tagIds.includes(tag.id) ? 'ring-2 ring-offset-1 ring-titan-500' : 'opacity-50'
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <div>
+            <Label>Tags</Label>
+            <TagPicker availableTags={availableTags} selectedIds={tagIds} onChange={setTagIds} placeholder="Search customer tags..." />
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button onClick={handleSave}>Save</Button>
@@ -258,10 +239,6 @@ function LocationCard({
     setEditing(true)
   }
 
-  function toggleTag(tagId: string) {
-    setTagIds((ids) => (ids.includes(tagId) ? ids.filter((t) => t !== tagId) : [...ids, tagId]))
-  }
-
   async function handleSave() {
     setError(null)
     try {
@@ -295,25 +272,10 @@ function LocationCard({
               <Input id={`edit-loc-zip-${location.id}`} value={postalCode} onChange={(e) => setPostalCode(e.target.value)} />
             </div>
           </div>
-          {availableTags.length > 0 && (
-            <div>
-              <Label>Tags</Label>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`cursor-pointer rounded-full px-2 py-0.5 text-xs font-semibold ${tagChipClass(tag.color)} ${
-                      tagIds.includes(tag.id) ? 'ring-2 ring-offset-1 ring-titan-500' : 'opacity-50'
-                    }`}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <div>
+            <Label>Tags</Label>
+            <TagPicker availableTags={availableTags} selectedIds={tagIds} onChange={setTagIds} placeholder="Search location tags..." />
+          </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <Button onClick={handleSave}>Save</Button>

@@ -12,6 +12,7 @@ import pricebookItemComponentRoutes from './routes/pricebookItemComponent.routes
 import pricebookResetRoutes from './routes/pricebookReset.routes.js'
 import jobTypeRoutes from './routes/jobType.routes.js'
 import tagRoutes from './routes/tag.routes.js'
+import timeframeRoutes from './routes/timeframe.routes.js'
 import jobRoutes from './routes/job.routes.js'
 import appointmentRoutes from './routes/appointment.routes.js'
 import estimateRoutes from './routes/estimate.routes.js'
@@ -36,6 +37,7 @@ app.use('/api/pricebook-categories', pricebookCategoryRoutes)
 app.use('/api/pricebook-item-components', pricebookItemComponentRoutes)
 app.use('/api/job-types', jobTypeRoutes)
 app.use('/api/tags', tagRoutes)
+app.use('/api/timeframes', timeframeRoutes)
 app.use('/api/jobs', jobRoutes)
 app.use('/api/appointments', appointmentRoutes)
 app.use('/api/estimates', estimateRoutes)

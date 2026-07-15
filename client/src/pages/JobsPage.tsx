@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
-import type { Customer, JobListItem, JobPriority, JobStatus, JobType, Location, Tag, User } from '../api/types'
-import { Badge, Button, Card, Input, Label, priorityAccentClass, Select, TagChip } from '../components/ui'
+import type { Customer, JobListItem, JobPriority, JobStatus, JobType, Location, Tag, Timeframe, User } from '../api/types'
+import { Badge, Button, Card, Label, priorityAccentClass, Select, TagChip } from '../components/ui'
 import { CustomerCombobox } from '../components/CustomerCombobox'
 import { LocationPicker } from '../components/LocationPicker'
 import { RichTextEditor } from '../components/RichTextEditor'
-import { tagChipClass } from '../components/tagPalette'
+import { TagPicker } from '../components/TagPicker'
+import { ScheduleFields } from '../components/ScheduleFields'
 
 const STATUSES: JobStatus[] = ['UNSCHEDULED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED', 'ON_HOLD']
 
@@ -20,6 +21,7 @@ export function JobsPage() {
   const [jobTypes, setJobTypes] = useState<JobType[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [technicians, setTechnicians] = useState<User[]>([])
+  const [timeframes, setTimeframes] = useState<Timeframe[]>([])
   const [statusFilter, setStatusFilter] = useState<JobStatus | ''>('')
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -35,6 +37,8 @@ export function JobsPage() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
   const [scheduleNow, setScheduleNow] = useState(false)
   const [technicianId, setTechnicianId] = useState('')
+  const [date, setDate] = useState('')
+  const [timeframeId, setTimeframeId] = useState('custom')
   const [start, setStart] = useState('')
   const [end, setEnd] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -46,8 +50,9 @@ export function JobsPage() {
   useEffect(loadJobs, [statusFilter])
   useEffect(() => {
     api.get<JobType[]>('/job-types?active=true').then(setJobTypes)
-    api.get<Tag[]>('/tags?active=true').then(setTags)
+    api.get<Tag[]>('/tags?category=JOB&active=true').then(setTags)
     api.get<User[]>('/users').then((users) => setTechnicians(users.filter((u) => u.role === 'TECHNICIAN')))
+    api.get<Timeframe[]>('/timeframes?active=true').then(setTimeframes)
   }, [])
   useEffect(() => {
     api.get<Customer[]>('/customers').then((data) => {
@@ -65,10 +70,6 @@ export function JobsPage() {
     if (jt) setPriority(jt.defaultPriority)
   }
 
-  function toggleTag(id: string) {
-    setSelectedTagIds((ids) => (ids.includes(id) ? ids.filter((t) => t !== id) : [...ids, id]))
-  }
-
   function resetForm() {
     setSelectedCustomer(null)
     setLocationId('')
@@ -78,6 +79,8 @@ export function JobsPage() {
     setSelectedTagIds([])
     setScheduleNow(false)
     setTechnicianId('')
+    setDate('')
+    setTimeframeId('custom')
     setStart('')
     setEnd('')
   }
@@ -177,25 +180,10 @@ export function JobsPage() {
               <RichTextEditor value={summary} onChange={setSummary} placeholder="Describe the job..." />
             </div>
 
-            {tags.length > 0 && (
-              <div>
-                <Label>Tags</Label>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={`cursor-pointer rounded-full px-2 py-0.5 text-xs font-semibold ${tagChipClass(tag.color)} ${
-                        selectedTagIds.includes(tag.id) ? 'ring-2 ring-offset-1 ring-titan-500' : 'opacity-50'
-                      }`}
-                    >
-                      {tag.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div>
+              <Label>Tags</Label>
+              <TagPicker availableTags={tags} selectedIds={selectedTagIds} onChange={setSelectedTagIds} placeholder="Search job tags..." />
+            </div>
 
             <div className="border-t border-slate-100 pt-3">
               <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
@@ -215,28 +203,19 @@ export function JobsPage() {
                       ))}
                     </Select>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label htmlFor="job-start">Start</Label>
-                      <Input
-                        id="job-start"
-                        type="datetime-local"
-                        value={start}
-                        onChange={(e) => setStart(e.target.value)}
-                        required={scheduleNow}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="job-end">End</Label>
-                      <Input
-                        id="job-end"
-                        type="datetime-local"
-                        value={end}
-                        onChange={(e) => setEnd(e.target.value)}
-                        required={scheduleNow}
-                      />
-                    </div>
-                  </div>
+                  <ScheduleFields
+                    idPrefix="job"
+                    timeframes={timeframes}
+                    date={date}
+                    setDate={setDate}
+                    timeframeId={timeframeId}
+                    setTimeframeId={setTimeframeId}
+                    start={start}
+                    setStart={setStart}
+                    end={end}
+                    setEnd={setEnd}
+                    required={scheduleNow}
+                  />
                 </div>
               )}
             </div>

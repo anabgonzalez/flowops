@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { JobPriority, JobType, Tag, TagCategory } from '../api/types'
+import type { JobPriority, JobType, Tag, TagCategory, Timeframe } from '../api/types'
 import { Badge, Button, Card, Input, Label, Select, TagChip } from '../components/ui'
 import { TAG_COLORS, tagSwatchClass, type TagColor } from '../components/tagPalette'
 
@@ -12,8 +12,120 @@ export function SettingsPage() {
       <TagsSection category="JOB" title="Job Tags" placeholder="e.g. Warranty" />
       <TagsSection category="CUSTOMER" title="Customer Tags" placeholder="e.g. Member" />
       <TagsSection category="LOCATION" title="Location Tags" placeholder="e.g. Has Dogs" />
+      <TimeframesSection />
       <DangerZone />
     </div>
+  )
+}
+
+function formatTime12h(time: string) {
+  const [h, m] = time.split(':').map(Number)
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 === 0 ? 12 : h % 12
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`
+}
+
+function TimeframesSection() {
+  const [timeframes, setTimeframes] = useState<Timeframe[]>([])
+  const [showForm, setShowForm] = useState(false)
+  const [name, setName] = useState('')
+  const [startTime, setStartTime] = useState('08:00')
+  const [endTime, setEndTime] = useState('10:00')
+  const [error, setError] = useState<string | null>(null)
+
+  function load() {
+    api.get<Timeframe[]>('/timeframes').then(setTimeframes)
+  }
+
+  useEffect(load, [])
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    try {
+      await api.post('/timeframes', { name, startTime, endTime })
+      setName('')
+      setStartTime('08:00')
+      setEndTime('10:00')
+      setShowForm(false)
+      load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create timeframe')
+    }
+  }
+
+  async function toggleActive(timeframe: Timeframe) {
+    await api.patch(`/timeframes/${timeframe.id}`, { active: !timeframe.active })
+    load()
+  }
+
+  async function handleDelete(timeframe: Timeframe) {
+    if (!confirm(`Delete timeframe "${timeframe.name}"?`)) return
+    await api.del(`/timeframes/${timeframe.id}`)
+    load()
+  }
+
+  return (
+    <section className="space-y-2">
+      <div className="flex items-center justify-between">
+        <h2 className="font-medium text-slate-900">Timeframes</h2>
+        <Button onClick={() => setShowForm((s) => !s)}>{showForm ? 'Cancel' : 'New Timeframe'}</Button>
+      </div>
+      <p className="text-sm text-slate-500">
+        Saved scheduling windows (e.g. "Morning, 8-10 AM") so appointments can be booked by picking a block instead
+        of typing exact times.
+      </p>
+
+      {showForm && (
+        <Card>
+          <form onSubmit={handleCreate} className="space-y-3">
+            <div>
+              <Label htmlFor="tf-name">Name</Label>
+              <Input id="tf-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Morning" required />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="tf-start">Start Time</Label>
+                <Input id="tf-start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
+              </div>
+              <div>
+                <Label htmlFor="tf-end">End Time</Label>
+                <Input id="tf-end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+              </div>
+            </div>
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            <Button type="submit">Save Timeframe</Button>
+          </form>
+        </Card>
+      )}
+
+      {timeframes.length === 0 ? (
+        <p className="text-sm text-slate-500">No timeframes yet.</p>
+      ) : (
+        <div className="space-y-2">
+          {timeframes.map((tf) => (
+            <Card key={tf.id} className={tf.active ? '' : 'opacity-50'}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="font-medium text-slate-900">{tf.name}</span>{' '}
+                  <span className="text-sm text-slate-500">
+                    ({formatTime12h(tf.startTime)}&ndash;{formatTime12h(tf.endTime)})
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="secondary" onClick={() => toggleActive(tf)}>
+                    {tf.active ? 'Deactivate' : 'Activate'}
+                  </Button>
+                  <Button variant="danger" onClick={() => handleDelete(tf)}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+    </section>
   )
 }
 

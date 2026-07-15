@@ -176,6 +176,14 @@ export interface JobType {
   _count?: { jobs: number }
 }
 
+export interface Timeframe {
+  id: string
+  name: string
+  startTime: string
+  endTime: string
+  active: boolean
+}
+
 export interface Job {
   id: string
   locationId: string
