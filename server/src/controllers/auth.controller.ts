@@ -23,13 +23,13 @@ export async function login(req: Request, res: Response) {
   if (!user || !valid) throw new AppError(401, 'Invalid email or password')
 
   const token = signToken(user.id)
-  res.cookie('token', token, authCookieOptions)
+  res.cookie('token', token, authCookieOptions(req))
   const { passwordHash: _passwordHash, ...safeUser } = user
   res.json(safeUser)
 }
 
-export function logout(_req: Request, res: Response) {
-  res.clearCookie('token', authCookieOptions)
+export function logout(req: Request, res: Response) {
+  res.clearCookie('token', authCookieOptions(req))
   res.status(204).send()
 }
 
@@ -70,7 +70,7 @@ export async function bootstrap(req: Request, res: Response) {
       })
 
   const token = signToken(user.id)
-  res.cookie('token', token, authCookieOptions)
+  res.cookie('token', token, authCookieOptions(req))
   const { passwordHash: _passwordHash, ...safeUser } = user
   res.status(201).json(safeUser)
 }
