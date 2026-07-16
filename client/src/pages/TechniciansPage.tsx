@@ -9,6 +9,7 @@ export function TechniciansPage() {
   const [showForm, setShowForm] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [role, setRole] = useState<Role>('TECHNICIAN')
   const [error, setError] = useState<string | null>(null)
 
@@ -22,9 +23,10 @@ export function TechniciansPage() {
     e.preventDefault()
     setError(null)
     try {
-      await api.post('/users', { name, email, role })
+      await api.post('/users', { name, email, role, password })
       setName('')
       setEmail('')
+      setPassword('')
       setShowForm(false)
       load()
     } catch (err) {
@@ -49,6 +51,17 @@ export function TechniciansPage() {
             <div>
               <Label htmlFor="tech-email">Email</Label>
               <Input id="tech-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            </div>
+            <div>
+              <Label htmlFor="tech-password">Password</Label>
+              <Input
+                id="tech-password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
             </div>
             <div>
               <Label htmlFor="tech-role">Role</Label>

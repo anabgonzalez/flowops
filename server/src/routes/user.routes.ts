@@ -5,6 +5,7 @@ import {
   deleteUser,
   getUser,
   listUsers,
+  resetPassword,
   updateUser,
 } from '../controllers/user.controller.js'
 
@@ -14,6 +15,7 @@ router.get('/', asyncHandler(listUsers))
 router.get('/:id', asyncHandler(getUser))
 router.post('/', asyncHandler(createUser))
 router.patch('/:id', asyncHandler(updateUser))
+router.patch('/:id/password', asyncHandler(resetPassword))
 router.delete('/:id', asyncHandler(deleteUser))
 
 export default router

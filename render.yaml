@@ -13,6 +13,10 @@ services:
         value: 5002
       - key: CLIENT_ORIGIN
         value: https://flowops-client.onrender.com
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        sync: false # paste in a random 32+ byte value, e.g. `openssl rand -hex 32`
 
   - type: web
     runtime: static

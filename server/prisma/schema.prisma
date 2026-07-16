@@ -108,6 +108,11 @@ model User {
   phone String?
   role  Role
 
+  // Null until someone (an admin, or the one-time bootstrap flow) sets a
+  // password - a User row can exist as a directory entry (tech roster)
+  // before it's ever a login-capable account.
+  passwordHash String?
+
   // HR/dispatch profile - all optional since not every role (e.g. an
   // office-only ADMIN) needs a truck or a pay rate on file.
   title            String?

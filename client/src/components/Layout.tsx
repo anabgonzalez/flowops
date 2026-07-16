@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '../auth/AuthContext'
 import { CustomersIcon, DispatchIcon, JobsIcon, PricebookIcon, SettingsIcon, TechniciansIcon } from './icons'
 
 const links = [
@@ -11,6 +12,8 @@ const links = [
 ]
 
 export function Layout() {
+  const { user, logout } = useAuth()
+
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="bg-navy-950 sticky top-0 z-10 border-b border-navy-800">
@@ -36,6 +39,16 @@ export function Layout() {
               </NavLink>
             ))}
           </nav>
+          <div className="flex items-center gap-2">
+            {user && <span className="hidden text-sm text-slate-300 sm:inline">{user.name}</span>}
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="cursor-pointer rounded-md px-2 py-1.5 text-sm font-medium text-slate-300 hover:bg-navy-800 hover:text-white"
+            >
+              Log out
+            </button>
+          </div>
         </div>
       </header>
 

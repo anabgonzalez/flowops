@@ -111,6 +111,9 @@ function TechnicianProfile({
   const [commissionPercent, setCommissionPercent] = useState(user.commissionPercent?.toString() ?? '')
   const [overrides, setOverrides] = useState<Record<string, boolean>>(user.permissionOverrides ?? {})
   const [error, setError] = useState<string | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [passwordStatus, setPasswordStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [passwordError, setPasswordError] = useState<string | null>(null)
 
   const roleDefault = rolePermissions.find((rp) => rp.role === role)?.permissions ?? {}
   const effectivePermissions = { ...roleDefault, ...overrides }
@@ -135,7 +138,23 @@ function TechnicianProfile({
     setCommissionPercent(user.commissionPercent?.toString() ?? '')
     setOverrides(user.permissionOverrides ?? {})
     setError(null)
+    setNewPassword('')
+    setPasswordStatus('idle')
+    setPasswordError(null)
     setEditing(true)
+  }
+
+  async function handleResetPassword() {
+    setPasswordStatus('idle')
+    setPasswordError(null)
+    try {
+      await api.patch(`/users/${user.id}/password`, { password: newPassword })
+      setNewPassword('')
+      setPasswordStatus('saved')
+    } catch (err) {
+      setPasswordError(err instanceof Error ? err.message : 'Failed to reset password')
+      setPasswordStatus('error')
+    }
   }
 
   function togglePermission(key: string, value: boolean) {
@@ -276,6 +295,31 @@ function TechnicianProfile({
               here only overrides this person.
             </p>
             <PermissionsChecklist values={effectivePermissions} onToggle={togglePermission} overriddenKeys={overriddenKeys} />
+          </div>
+
+          <div className="border-t border-slate-100 pt-3">
+            <Label htmlFor="tech-edit-new-password">Reset Password</Label>
+            <p className="mb-2 text-xs text-slate-500">Separate from the fields above - only takes effect when you click Set Password.</p>
+            <div className="flex items-end gap-2">
+              <div className="w-48">
+                <Input
+                  id="tech-edit-new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value)
+                    setPasswordStatus('idle')
+                  }}
+                  minLength={8}
+                  placeholder="New password"
+                />
+              </div>
+              <Button type="button" variant="secondary" disabled={newPassword.length < 8} onClick={handleResetPassword}>
+                Set Password
+              </Button>
+            </div>
+            {passwordStatus === 'saved' && <p className="mt-1 text-sm text-emerald-700">Password updated.</p>}
+            {passwordStatus === 'error' && <p className="mt-1 text-sm text-red-600">{passwordError}</p>}
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

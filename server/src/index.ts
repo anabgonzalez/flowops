@@ -2,6 +2,9 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import healthRoute from './routes/health.route.js'
+import authRoutes from './routes/auth.routes.js'
+import { requireAuth } from './middleware/requireAuth.js'
+import { asyncHandler } from './middleware/asyncHandler.js'
 import userRoutes from './routes/user.routes.js'
 import rolePermissionsRoutes from './routes/rolePermissions.routes.js'
 import customerRoutes from './routes/customer.routes.js'
@@ -25,10 +28,16 @@ const PORT = process.env.PORT ?? 5002
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN
 
 const app = express()
-app.use(cors({ origin: CLIENT_ORIGIN ?? true }))
+app.use(cors({ origin: CLIENT_ORIGIN ?? true, credentials: true }))
 app.use(express.json())
 
 app.use('/api/health', healthRoute)
+app.use('/api/auth', authRoutes)
+
+// Everything below requires a valid session. Mounted here (not per-router)
+// so a new route file can't accidentally forget it.
+app.use(asyncHandler(requireAuth))
+
 app.use('/api/users', userRoutes)
 app.use('/api/role-permissions', rolePermissionsRoutes)
 app.use('/api/customers', customerRoutes)
