@@ -228,3 +228,38 @@ export interface JobListItem {
   tags: Tag[]
   appointments: Appointment[]
 }
+
+export interface DispatchJob {
+  id: string
+  jobType: JobType
+  status: JobStatus
+  priority: JobPriority
+  summary: string
+  createdAt: string
+  location: LocationWithCustomer
+  tags: Tag[]
+}
+
+export interface DispatchAppointment {
+  id: string
+  jobId: string
+  technicianId: string | null
+  start: string
+  end: string
+  status: AppointmentStatus
+  notes: string | null
+  technician: User | null
+  job: {
+    id: string
+    summary: string
+    priority: JobPriority
+    jobType: JobType
+    location: LocationWithCustomer
+  }
+}
+
+export interface DispatchBoard {
+  technicians: User[]
+  appointments: DispatchAppointment[]
+  unassignedJobs: DispatchJob[]
+}

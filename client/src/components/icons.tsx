@@ -51,6 +51,18 @@ export function TechniciansIcon(props: SVGProps<SVGSVGElement>) {
   )
 }
 
+export function DispatchIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...base(props)}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <path d="M3 10h18" />
+      <path d="M7 2v4" />
+      <path d="M17 2v4" />
+      <rect x="6" y="13" width="5" height="3" rx="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function SettingsIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg {...base(props)}>

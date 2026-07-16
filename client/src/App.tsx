@@ -4,6 +4,7 @@ import { CustomersPage } from './pages/CustomersPage'
 import { CustomerDetailPage } from './pages/CustomerDetailPage'
 import { JobsPage } from './pages/JobsPage'
 import { JobDetailPage } from './pages/JobDetailPage'
+import { DispatchBoardPage } from './pages/DispatchBoardPage'
 import { PricebookPage } from './pages/PricebookPage'
 import { PricebookItemDetailPage } from './pages/PricebookItemDetailPage'
 import { TechniciansPage } from './pages/TechniciansPage'
@@ -17,6 +18,7 @@ function App() {
         <Route path="/" element={<Navigate to="/jobs" replace />} />
         <Route path="/jobs" element={<JobsPage />} />
         <Route path="/jobs/:id" element={<JobDetailPage />} />
+        <Route path="/dispatch" element={<DispatchBoardPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/customers/:id" element={<CustomerDetailPage />} />
         <Route path="/pricebook" element={<PricebookPage />} />
