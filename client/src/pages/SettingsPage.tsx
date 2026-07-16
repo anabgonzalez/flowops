@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
-import type { JobPriority, JobType, Tag, TagCategory, Timeframe } from '../api/types'
+import type { JobPriority, JobType, Role, RolePermissions, Tag, TagCategory, Timeframe } from '../api/types'
 import { Badge, Button, Card, Input, Label, Select, TagChip } from '../components/ui'
 import { TAG_COLORS, tagSwatchClass, type TagColor } from '../components/tagPalette'
+import { PermissionsChecklist } from '../components/PermissionsChecklist'
+
+const ROLES: Role[] = ['OWNER', 'ADMIN', 'DISPATCHER', 'CSR', 'SALES_REP', 'TECHNICIAN']
 
 export function SettingsPage() {
   return (
@@ -13,8 +16,64 @@ export function SettingsPage() {
       <TagsSection category="CUSTOMER" title="Customer Tags" placeholder="e.g. Member" />
       <TagsSection category="LOCATION" title="Location Tags" placeholder="e.g. Has Dogs" />
       <TimeframesSection />
+      <RolePermissionsSection />
       <DangerZone />
     </div>
+  )
+}
+
+function RolePermissionsSection() {
+  const [rolePermissions, setRolePermissions] = useState<RolePermissions[]>([])
+  const [openRole, setOpenRole] = useState<Role | null>(null)
+
+  function load() {
+    api.get<RolePermissions[]>('/role-permissions').then(setRolePermissions)
+  }
+
+  useEffect(load, [])
+
+  async function handleToggle(role: Role, key: string, value: boolean) {
+    const current = rolePermissions.find((rp) => rp.role === role)
+    const nextPermissions = { ...current?.permissions, [key]: value }
+    // Update locally first so the checkbox responds immediately, then persist.
+    setRolePermissions((rows) =>
+      rows.map((rp) => (rp.role === role ? { ...rp, permissions: nextPermissions } : rp)),
+    )
+    await api.patch(`/role-permissions/${role}`, { permissions: nextPermissions })
+  }
+
+  return (
+    <section className="space-y-2">
+      <h2 className="font-medium text-slate-900">Role Permissions</h2>
+      <p className="text-sm text-slate-500">
+        Default permissions for each role. A technician's individual profile can still override one or two of these
+        without changing everyone with that role.
+      </p>
+
+      <div className="space-y-2">
+        {ROLES.map((role) => {
+          const rp = rolePermissions.find((r) => r.role === role)
+          const open = openRole === role
+          return (
+            <Card key={role}>
+              <button
+                type="button"
+                onClick={() => setOpenRole(open ? null : role)}
+                className="flex w-full cursor-pointer items-center justify-between text-left"
+              >
+                <span className="font-medium text-slate-900">{role.replaceAll('_', ' ')}</span>
+                <span className="text-sm text-titan-600">{open ? 'Hide' : 'Edit'}</span>
+              </button>
+              {open && rp && (
+                <div className="mt-3 border-t border-slate-100 pt-3">
+                  <PermissionsChecklist values={rp.permissions} onToggle={(key, value) => handleToggle(role, key, value)} />
+                </div>
+              )}
+            </Card>
+          )
+        })}
+      </div>
+    </section>
   )
 }
 

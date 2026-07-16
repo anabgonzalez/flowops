@@ -24,6 +24,22 @@ export interface User {
   email: string
   phone: string | null
   role: Role
+  title: string | null
+  truckNumber: string | null
+  homeAddressLine1: string | null
+  homeCity: string | null
+  homeState: string | null
+  homePostalCode: string | null
+  hourlyRateCents: number | null
+  annualSalaryCents: number | null
+  commissionPercent: number | null
+  permissionOverrides: Record<string, boolean> | null
+}
+
+export interface RolePermissions {
+  id: string
+  role: Role
+  permissions: Record<string, boolean>
 }
 
 export interface Tag {

@@ -102,15 +102,47 @@ enum ContactRole {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  role      Role
+  id    String @id @default(cuid())
+  name  String
+  email String @unique
+  phone String?
+  role  Role
+
+  // HR/dispatch profile - all optional since not every role (e.g. an
+  // office-only ADMIN) needs a truck or a pay rate on file.
+  title            String?
+  truckNumber      String?
+  homeAddressLine1 String?
+  homeCity         String?
+  homeState        String?
+  homePostalCode   String?
+
+  // Pay: any subset of these can be set at once (e.g. hourly + commission),
+  // so this is deliberately not a single "pay type" enum - which fields are
+  // non-null is what determines how someone is paid.
+  hourlyRateCents    Int?
+  annualSalaryCents  Int?
+  commissionPercent  Float?
+
+  // Sparse deltas from that user's RolePermissions default - e.g.
+  // { "manage_technicians": true } to grant one extra permission to an
+  // otherwise-standard TECHNICIAN. Absent key = inherit the role default.
+  permissionOverrides Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   appointments Appointment[]
+}
+
+// Default permission set for each Role, editable in Settings. Individual
+// users can still deviate from their role's defaults via
+// User.permissionOverrides.
+model RolePermissions {
+  id          String   @id @default(cuid())
+  role        Role     @unique
+  permissions Json
+  updatedAt   DateTime @updatedAt
 }
 
 model Customer {

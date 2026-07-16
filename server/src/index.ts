@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import healthRoute from './routes/health.route.js'
 import userRoutes from './routes/user.routes.js'
+import rolePermissionsRoutes from './routes/rolePermissions.routes.js'
 import customerRoutes from './routes/customer.routes.js'
 import locationRoutes from './routes/location.routes.js'
 import locationContactRoutes from './routes/locationContact.routes.js'
@@ -28,6 +29,7 @@ app.use(express.json())
 
 app.use('/api/health', healthRoute)
 app.use('/api/users', userRoutes)
+app.use('/api/role-permissions', rolePermissionsRoutes)
 app.use('/api/customers', customerRoutes)
 app.use('/api/locations', locationRoutes)
 app.use('/api/location-contacts', locationContactRoutes)

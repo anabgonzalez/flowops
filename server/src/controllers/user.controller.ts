@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express'
 import { prisma } from '../lib/prisma.js'
 import { AppError } from '../utils/AppError.js'
+import { sanitizePermissionsMap } from '../permissions.js'
 
 export async function listUsers(_req: Request, res: Response) {
   const users = await prisma.user.findMany({ orderBy: { name: 'asc' } })
@@ -23,10 +24,43 @@ export async function createUser(req: Request, res: Response) {
 }
 
 export async function updateUser(req: Request, res: Response) {
-  const { name, email, phone, role } = req.body
+  const {
+    name,
+    email,
+    phone,
+    role,
+    title,
+    truckNumber,
+    homeAddressLine1,
+    homeCity,
+    homeState,
+    homePostalCode,
+    hourlyRateCents,
+    annualSalaryCents,
+    commissionPercent,
+    permissionOverrides,
+  } = req.body
+
   const user = await prisma.user.update({
     where: { id: req.params.id },
-    data: { name, email, phone, role },
+    data: {
+      name,
+      email,
+      phone,
+      role,
+      title,
+      truckNumber,
+      homeAddressLine1,
+      homeCity,
+      homeState,
+      homePostalCode,
+      hourlyRateCents,
+      annualSalaryCents,
+      commissionPercent,
+      // Overrides are sparse deltas from the role default - only known,
+      // boolean-valued keys are kept, so a stray/typo'd key can't sneak in.
+      permissionOverrides: permissionOverrides !== undefined ? sanitizePermissionsMap(permissionOverrides) : undefined,
+    },
   })
   res.json(user)
 }
