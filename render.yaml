@@ -4,7 +4,11 @@ services:
     name: flowops-api
     plan: free
     rootDir: server
-    buildCommand: npm install && npm run build && npm run deploy:migrate
+    # --include=dev: NODE_ENV=production below makes plain `npm install`
+    # skip devDependencies, which is where the TypeScript compiler and all
+    # @types/* packages live - needed to build, even though nothing at
+    # runtime depends on them. Without this flag the build fails outright.
+    buildCommand: npm install --include=dev && npm run build && npm run deploy:migrate
     startCommand: npm start
     envVars:
       - key: DATABASE_URL
