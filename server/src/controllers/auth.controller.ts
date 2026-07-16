@@ -2,8 +2,9 @@ import type { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { AppError } from '../utils/AppError.js'
-import { signToken } from '../utils/jwt.js'
+import { signToken, verifyToken } from '../utils/jwt.js'
 import { authCookieOptions } from '../utils/cookieOptions.js'
+import { getCookie } from '../utils/cookies.js'
 import { Role } from '../generated/prisma/enums.js'
 
 const MIN_PASSWORD_LENGTH = 8
@@ -35,6 +36,27 @@ export function logout(req: Request, res: Response) {
 
 export function me(req: Request, res: Response) {
   res.json(req.user)
+}
+
+// Temporary - lets us see exactly what Render's proxy is telling Express
+// (from a phone browser, no dev tools needed) instead of guessing. Safe to
+// hit repeatedly; reveals no secrets, just request/cookie diagnostics.
+export function debugProxy(req: Request, res: Response) {
+  const token = getCookie(req, 'token')
+  const decoded = token ? verifyToken(token) : null
+  res.json({
+    secure: req.secure,
+    protocol: req.protocol,
+    xForwardedProto: req.headers['x-forwarded-proto'] ?? null,
+    cookieHeaderPresent: Boolean(req.headers.cookie),
+    cookieHeaderNames: (req.headers.cookie ?? '')
+      .split(';')
+      .map((c) => c.trim().split('=')[0])
+      .filter(Boolean),
+    tokenCookieFound: Boolean(token),
+    tokenVerifies: Boolean(decoded),
+    cookieOptionsThatWouldBeUsed: authCookieOptions(req),
+  })
 }
 
 // Whether the one-time bootstrap flow is still open. It self-disables the
