@@ -17,7 +17,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
-    if (!getAuthToken()) {
+    const tokenAtStart = getAuthToken()
+    if (!tokenAtStart) {
       setUser(null)
       setLoading(false)
       return
@@ -29,6 +30,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!(err instanceof ApiError && err.status === 401)) {
         console.error(err)
       }
+      // The token is about to be wiped, which erases the evidence of why -
+      // record it first so a diagnostic page can show what actually
+      // happened instead of just "token: NO" after the fact.
+      sessionStorage.setItem(
+        'last_auth_failure',
+        JSON.stringify({
+          at: new Date().toISOString(),
+          tokenLength: tokenAtStart.length,
+          tokenPrefix: tokenAtStart.slice(0, 12),
+          status: err instanceof ApiError ? err.status : null,
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      )
       setAuthToken(null)
       setUser(null)
     } finally {

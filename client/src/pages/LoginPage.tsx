@@ -7,11 +7,12 @@ import { Button, Card, Input, Label } from '../components/ui'
 // Temporary - proves which build is actually running and what's in
 // localStorage the instant this page renders (e.g. right after being
 // bounced back from a failed session check), without needing dev tools.
-const BUILD_MARKER = 'auth-diag-2026-07-17-b'
+const BUILD_MARKER = 'auth-diag-2026-07-17-c'
 
 function DiagnosticsPanel() {
   const [meResult, setMeResult] = useState<string>('checking...')
   const token = getAuthToken()
+  const lastFailure = sessionStorage.getItem('last_auth_failure')
 
   useEffect(() => {
     if (!token) {
@@ -27,8 +28,11 @@ function DiagnosticsPanel() {
   return (
     <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#111', color: '#0f0', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>
       <div>build: {BUILD_MARKER}</div>
-      <div>token in localStorage: {token ? `yes (${token.length} chars)` : 'NO'}</div>
-      <div>GET /auth/me result: {meResult}</div>
+      <div>token in localStorage right now: {token ? `yes (${token.length} chars)` : 'NO'}</div>
+      <div>GET /auth/me result right now: {meResult}</div>
+      <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
+        last recorded auth failure (before token was cleared): {lastFailure ?? 'none recorded yet'}
+      </div>
     </div>
   )
 }
