@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { api } from '../api/client'
+import { api, setAuthToken } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Button, Card, Input, Label } from '../components/ui'
 
@@ -114,7 +114,8 @@ function SetupForm({ onSetUp }: { onSetUp: () => Promise<void> }) {
     setError(null)
     setSubmitting(true)
     try {
-      await api.post('/auth/bootstrap', { name, email, password })
+      const { token } = await api.post<{ token: string }>('/auth/bootstrap', { name, email, password })
+      setAuthToken(token)
       await onSetUp()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to set up the account')

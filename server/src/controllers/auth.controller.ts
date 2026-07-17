@@ -2,9 +2,7 @@ import type { Request, Response } from 'express'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { AppError } from '../utils/AppError.js'
-import { signToken, verifyToken } from '../utils/jwt.js'
-import { authCookieOptions } from '../utils/cookieOptions.js'
-import { getCookie } from '../utils/cookies.js'
+import { signToken } from '../utils/jwt.js'
 import { Role } from '../generated/prisma/enums.js'
 
 const MIN_PASSWORD_LENGTH = 8
@@ -24,39 +22,19 @@ export async function login(req: Request, res: Response) {
   if (!user || !valid) throw new AppError(401, 'Invalid email or password')
 
   const token = signToken(user.id)
-  res.cookie('token', token, authCookieOptions(req))
   const { passwordHash: _passwordHash, ...safeUser } = user
-  res.json(safeUser)
+  res.json({ ...safeUser, token })
 }
 
-export function logout(req: Request, res: Response) {
-  res.clearCookie('token', authCookieOptions(req))
+// Stateless JWTs - there's no server-side session to invalidate, just a
+// token the client discards. Kept as a route for a clean client-side call
+// site, but it's a no-op here.
+export function logout(_req: Request, res: Response) {
   res.status(204).send()
 }
 
 export function me(req: Request, res: Response) {
   res.json(req.user)
-}
-
-// Temporary - lets us see exactly what Render's proxy is telling Express
-// (from a phone browser, no dev tools needed) instead of guessing. Safe to
-// hit repeatedly; reveals no secrets, just request/cookie diagnostics.
-export function debugProxy(req: Request, res: Response) {
-  const token = getCookie(req, 'token')
-  const decoded = token ? verifyToken(token) : null
-  res.json({
-    secure: req.secure,
-    protocol: req.protocol,
-    xForwardedProto: req.headers['x-forwarded-proto'] ?? null,
-    cookieHeaderPresent: Boolean(req.headers.cookie),
-    cookieHeaderNames: (req.headers.cookie ?? '')
-      .split(';')
-      .map((c) => c.trim().split('=')[0])
-      .filter(Boolean),
-    tokenCookieFound: Boolean(token),
-    tokenVerifies: Boolean(decoded),
-    cookieOptionsThatWouldBeUsed: authCookieOptions(req),
-  })
 }
 
 // Whether the one-time bootstrap flow is still open. It self-disables the
@@ -92,7 +70,6 @@ export async function bootstrap(req: Request, res: Response) {
       })
 
   const token = signToken(user.id)
-  res.cookie('token', token, authCookieOptions(req))
   const { passwordHash: _passwordHash, ...safeUser } = user
-  res.status(201).json(safeUser)
+  res.status(201).json({ ...safeUser, token })
 }

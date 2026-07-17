@@ -28,11 +28,8 @@ const PORT = process.env.PORT ?? 5002
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN
 
 const app = express()
-// Render terminates TLS at its edge and forwards plain HTTP to this
-// process - without trusting the proxy, req.secure would always read
-// false, breaking the Secure/SameSite cookie logic in cookieOptions.ts.
 app.set('trust proxy', 1)
-app.use(cors({ origin: CLIENT_ORIGIN ?? true, credentials: true }))
+app.use(cors({ origin: CLIENT_ORIGIN ?? true }))
 app.use(express.json())
 
 app.use('/api/health', healthRoute)

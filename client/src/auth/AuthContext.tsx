@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api, ApiError } from '../api/client'
+import { api, ApiError, getAuthToken, setAuthToken } from '../api/client'
 import type { User } from '../api/types'
 
 interface AuthContextValue {
   user: User | null
   loading: boolean
   login: (email: string, password: string) => Promise<void>
-  logout: () => Promise<void>
+  logout: () => void
   refresh: () => Promise<void>
 }
 
@@ -17,6 +17,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const refresh = useCallback(async () => {
+    if (!getAuthToken()) {
+      setUser(null)
+      setLoading(false)
+      return
+    }
     try {
       const me = await api.get<User>('/auth/me')
       setUser(me)
@@ -24,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!(err instanceof ApiError && err.status === 401)) {
         console.error(err)
       }
+      setAuthToken(null)
       setUser(null)
     } finally {
       setLoading(false)
@@ -35,12 +41,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   async function login(email: string, password: string) {
-    const me = await api.post<User>('/auth/login', { email, password })
+    const { token, ...me } = await api.post<User & { token: string }>('/auth/login', { email, password })
+    setAuthToken(token)
     setUser(me)
   }
 
-  async function logout() {
-    await api.post('/auth/logout', {})
+  function logout() {
+    setAuthToken(null)
     setUser(null)
   }
 

@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { asyncHandler } from '../middleware/asyncHandler.js'
 import { requireAuth } from '../middleware/requireAuth.js'
-import { bootstrap, bootstrapStatus, debugProxy, login, logout, me } from '../controllers/auth.controller.js'
+import { bootstrap, bootstrapStatus, login, logout, me } from '../controllers/auth.controller.js'
 
 const router = Router()
 
@@ -10,6 +10,5 @@ router.post('/logout', logout)
 router.get('/bootstrap-status', asyncHandler(bootstrapStatus))
 router.post('/bootstrap', asyncHandler(bootstrap))
 router.get('/me', asyncHandler(requireAuth), me)
-router.get('/debug-proxy', debugProxy)
 
 export default router
