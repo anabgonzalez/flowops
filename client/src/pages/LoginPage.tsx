@@ -7,13 +7,14 @@ import { Button, Card, Input, Label } from '../components/ui'
 // Temporary - proves which build is actually running and what's in
 // localStorage the instant this page renders (e.g. right after being
 // bounced back from a failed session check), without needing dev tools.
-const BUILD_MARKER = 'auth-diag-2026-07-17-d'
+const BUILD_MARKER = 'auth-diag-2026-07-17-e'
 
 function DiagnosticsPanel() {
   const [meResult, setMeResult] = useState<string>('checking...')
   const [storageTestValue, setStorageTestValue] = useState(() => localStorage.getItem('storage_test'))
   const token = getAuthToken()
   const lastFailure = sessionStorage.getItem('last_auth_failure')
+  const lastLoginResponseKeys = sessionStorage.getItem('last_login_response_keys')
 
   useEffect(() => {
     if (!token) {
@@ -40,6 +41,9 @@ function DiagnosticsPanel() {
       <div>GET /auth/me result right now: {meResult}</div>
       <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
         last recorded auth failure (before token was cleared): {lastFailure ?? 'none recorded yet'}
+      </div>
+      <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
+        fields the server's last login response actually contained: {lastLoginResponseKeys ?? 'no login attempted yet this session'}
       </div>
       <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
         <div>storage self-test value: {storageTestValue ?? 'NONE - not set, or wiped by a refresh'}</div>

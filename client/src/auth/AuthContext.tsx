@@ -55,7 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   async function login(email: string, password: string) {
-    const { token, ...me } = await api.post<User & { token: string }>('/auth/login', { email, password })
+    const response = await api.post<Record<string, unknown>>('/auth/login', { email, password })
+    // Diagnostic: if the API is running stale code that predates the
+    // Bearer-token switch, `token` won't be in this response at all -
+    // record what actually came back so that's visible without dev tools.
+    sessionStorage.setItem('last_login_response_keys', JSON.stringify(Object.keys(response)))
+    const { token, ...me } = response as unknown as User & { token: string }
     setAuthToken(token)
     setUser(me)
   }
