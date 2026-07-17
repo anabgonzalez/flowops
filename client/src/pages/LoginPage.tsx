@@ -1,8 +1,37 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { api, setAuthToken } from '../api/client'
+import { api, ApiError, getAuthToken, setAuthToken } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Button, Card, Input, Label } from '../components/ui'
+
+// Temporary - proves which build is actually running and what's in
+// localStorage the instant this page renders (e.g. right after being
+// bounced back from a failed session check), without needing dev tools.
+const BUILD_MARKER = 'auth-diag-2026-07-17-b'
+
+function DiagnosticsPanel() {
+  const [meResult, setMeResult] = useState<string>('checking...')
+  const token = getAuthToken()
+
+  useEffect(() => {
+    if (!token) {
+      setMeResult('no token to check')
+      return
+    }
+    api
+      .get('/auth/me')
+      .then((res) => setMeResult(`200 OK: ${JSON.stringify(res)}`))
+      .catch((err) => setMeResult(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)))
+  }, [token])
+
+  return (
+    <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#111', color: '#0f0', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>
+      <div>build: {BUILD_MARKER}</div>
+      <div>token in localStorage: {token ? `yes (${token.length} chars)` : 'NO'}</div>
+      <div>GET /auth/me result: {meResult}</div>
+    </div>
+  )
+}
 
 export function LoginPage() {
   const { user, loading, login, refresh } = useAuth()
@@ -31,6 +60,8 @@ export function LoginPage() {
           <span className="flex h-8 w-8 items-center justify-center rounded bg-titan-500 text-sm font-bold text-white">F</span>
           <span className="text-xl font-semibold tracking-tight text-slate-900">FlowOps</span>
         </div>
+
+        <DiagnosticsPanel />
 
         <Card>
           {mode === 'login' ? (
