@@ -1,67 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { api, ApiError, getAuthToken, setAuthToken } from '../api/client'
+import { api, setAuthToken } from '../api/client'
 import { useAuth } from '../auth/AuthContext'
 import { Button, Card, Input, Label } from '../components/ui'
-
-// Temporary - proves which build is actually running and what's in
-// localStorage the instant this page renders (e.g. right after being
-// bounced back from a failed session check), without needing dev tools.
-const BUILD_MARKER = 'auth-diag-2026-07-17-e'
-
-function DiagnosticsPanel() {
-  const [meResult, setMeResult] = useState<string>('checking...')
-  const [storageTestValue, setStorageTestValue] = useState(() => localStorage.getItem('storage_test'))
-  const token = getAuthToken()
-  const lastFailure = sessionStorage.getItem('last_auth_failure')
-  const lastLoginResponseKeys = sessionStorage.getItem('last_login_response_keys')
-
-  useEffect(() => {
-    if (!token) {
-      setMeResult('no token to check')
-      return
-    }
-    api
-      .get('/auth/me')
-      .then((res) => setMeResult(`200 OK: ${JSON.stringify(res)}`))
-      .catch((err) => setMeResult(err instanceof ApiError ? `${err.status}: ${err.message}` : String(err)))
-  }, [token])
-
-  function writeStorageTest() {
-    const value = new Date().toISOString()
-    localStorage.setItem('storage_test', value)
-    setStorageTestValue(localStorage.getItem('storage_test'))
-  }
-
-  return (
-    <div style={{ fontFamily: 'monospace', fontSize: 11, background: '#111', color: '#0f0', padding: 8, borderRadius: 4, wordBreak: 'break-all' }}>
-      <div>build: {BUILD_MARKER}</div>
-      <div>user agent: {navigator.userAgent}</div>
-      <div>token in localStorage right now: {token ? `yes (${token.length} chars)` : 'NO'}</div>
-      <div>GET /auth/me result right now: {meResult}</div>
-      <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
-        last recorded auth failure (before token was cleared): {lastFailure ?? 'none recorded yet'}
-      </div>
-      <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
-        fields the server's last login response actually contained: {lastLoginResponseKeys ?? 'no login attempted yet this session'}
-      </div>
-      <div style={{ marginTop: 6, borderTop: '1px solid #333', paddingTop: 6 }}>
-        <div>storage self-test value: {storageTestValue ?? 'NONE - not set, or wiped by a refresh'}</div>
-        <button
-          type="button"
-          onClick={writeStorageTest}
-          style={{ marginTop: 4, background: '#0f0', color: '#111', padding: '4px 8px', borderRadius: 4, fontFamily: 'monospace', fontSize: 11 }}
-        >
-          Write test value now
-        </button>
-        <div style={{ marginTop: 4, color: '#999' }}>
-          Tap this button, then refresh the page WITHOUT tapping it again. If the value above goes back to "NONE"
-          after refreshing, this browser isn't persisting storage for this site at all - unrelated to login.
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export function LoginPage() {
   const { user, loading, login, refresh } = useAuth()
@@ -90,8 +31,6 @@ export function LoginPage() {
           <span className="flex h-8 w-8 items-center justify-center rounded bg-titan-500 text-sm font-bold text-white">F</span>
           <span className="text-xl font-semibold tracking-tight text-slate-900">FlowOps</span>
         </div>
-
-        <DiagnosticsPanel />
 
         <Card>
           {mode === 'login' ? (

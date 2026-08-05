@@ -30,19 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!(err instanceof ApiError && err.status === 401)) {
         console.error(err)
       }
-      // The token is about to be wiped, which erases the evidence of why -
-      // record it first so a diagnostic page can show what actually
-      // happened instead of just "token: NO" after the fact.
-      sessionStorage.setItem(
-        'last_auth_failure',
-        JSON.stringify({
-          at: new Date().toISOString(),
-          tokenLength: tokenAtStart.length,
-          tokenPrefix: tokenAtStart.slice(0, 12),
-          status: err instanceof ApiError ? err.status : null,
-          message: err instanceof Error ? err.message : String(err),
-        }),
-      )
       setAuthToken(null)
       setUser(null)
     } finally {
@@ -55,12 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh])
 
   async function login(email: string, password: string) {
-    const response = await api.post<Record<string, unknown>>('/auth/login', { email, password })
-    // Diagnostic: if the API is running stale code that predates the
-    // Bearer-token switch, `token` won't be in this response at all -
-    // record what actually came back so that's visible without dev tools.
-    sessionStorage.setItem('last_login_response_keys', JSON.stringify(Object.keys(response)))
-    const { token, ...me } = response as unknown as User & { token: string }
+    const { token, ...me } = await api.post<User & { token: string }>('/auth/login', { email, password })
     setAuthToken(token)
     setUser(me)
   }
