@@ -4,7 +4,7 @@ import path from "path"
 import { fileURLToPath } from "url"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-dotenv.config({ path: path.resolve(__dirname, "../../.env") })
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") })
 
 const { Pool } = pg
 
@@ -18,7 +18,7 @@ export const connectDB = async () => {
         const { rows } = await pool.query("SELECT now()")
         console.log(`Postgres connected: ${rows[0].now}`)
     } catch (error) {
-        console.log(`Error: ${error.message}`)
+        console.log(`Error: ${error instanceof Error ? error.message : error}`)
         process.exit(1)
     }
 }
