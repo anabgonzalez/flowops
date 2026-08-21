@@ -90,7 +90,7 @@ export default function Login() {
             <Text fontSize="sm" mt="4">
                 {mode === 'sign_in' ? "Don't have an account? " : 'Already have an account? '}
                 <Button
-                    variant="plain"
+                    variant="surface"
                     size="sm"
                     onClick={() => {
                         setMode(mode === 'sign_in' ? 'sign_up' : 'sign_in')

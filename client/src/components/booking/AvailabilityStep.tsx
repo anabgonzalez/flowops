@@ -58,7 +58,7 @@ export default function AvailabilityStep({ jobType, postalCode, onSelect }: Prop
                         {daySlots.map((slot, i) => (
                             <Button
                                 key={`${slot.technicianId}-${slot.start.toISOString()}-${i}`}
-                                variant="outline"
+                                variant="surface"
                                 onClick={() => onSelect(slot)}
                                 height="auto"
                                 py="2"

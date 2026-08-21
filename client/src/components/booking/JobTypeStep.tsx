@@ -54,7 +54,7 @@ export default function JobTypeStep({ customerId, onSelect }: Props) {
                 >
                     Continue
                 </Button>
-                <Button variant="plain" size="sm" alignSelf="start" onClick={() => setPendingCallback(false)}>
+                <Button variant="surface" size="sm" alignSelf="start" onClick={() => setPendingCallback(false)}>
                     Back
                 </Button>
             </Stack>

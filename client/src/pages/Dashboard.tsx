@@ -31,7 +31,7 @@ export default function Dashboard() {
                     <Button colorPalette="blue" alignSelf="start">New booking</Button>
                 </RouterLink>
 
-                <Button onClick={() => signOut()} variant="outline" alignSelf="start">
+                <Button onClick={() => signOut()} variant="surface" alignSelf="start">
                     Sign out
                 </Button>
             </Stack>

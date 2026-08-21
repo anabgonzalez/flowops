@@ -56,7 +56,7 @@ export default function MembershipPitch({ customerId }: { customerId: string }) 
                     </HStack>
                 ))}
             </Stack>
-            <Button size="sm" variant="plain" mt="2" onClick={() => setDismissed(true)}>
+            <Button size="sm" variant="surface" mt="2" onClick={() => setDismissed(true)}>
                 Not this time
             </Button>
         </Box>
