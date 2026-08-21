@@ -54,12 +54,16 @@ export default function AvailabilityStep({ jobType, postalCode, onSelect }: Prop
             {[...byDay.entries()].map(([day, daySlots]) => (
                 <Box key={day}>
                     <Text fontSize="sm" fontWeight="medium" color="gray.500" mb="2">{day}</Text>
-                    <Grid templateColumns="repeat(auto-fit, minmax(160px, 1fr))" gap="2">
+                    <Grid templateColumns="repeat(auto-fit, minmax(180px, 1fr))" gap="2">
                         {daySlots.map((slot, i) => (
                             <Button
                                 key={`${slot.technicianId}-${slot.start.toISOString()}-${i}`}
                                 variant="outline"
                                 onClick={() => onSelect(slot)}
+                                height="auto"
+                                py="2"
+                                whiteSpace="normal"
+                                textAlign="center"
                             >
                                 {timeLabel(slot.start)} · {slot.technicianName}
                             </Button>
