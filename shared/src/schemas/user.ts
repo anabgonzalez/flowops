@@ -33,6 +33,7 @@ export const userProfileSchema = z.object({
     division: divisionSchema.nullable(),
     is_active: z.boolean(),
     created_at: z.string(),
+    service_zip_codes: z.array(z.string()).nullable(),
 })
 
 export type UserProfile = z.infer<typeof userProfileSchema>

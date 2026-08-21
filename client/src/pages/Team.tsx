@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link as RouterLink } from 'react-router-dom'
-import { Badge, Box, Button, HStack, NativeSelect, Stack, Switch, Text } from '@chakra-ui/react'
+import { Badge, Box, Button, HStack, Input, NativeSelect, Stack, Switch, Text } from '@chakra-ui/react'
 import { userRoleSchema, divisionSchema, type UserProfile, type UserRole, type Division } from '@flowops/shared'
 import { useAuth } from '../context/AuthContext'
 import { listTeamMembers, updateTeamMember } from '../lib/team'
@@ -9,7 +9,7 @@ function formatLabel(value: string): string {
     return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-type Updates = Partial<Pick<UserProfile, 'role' | 'division' | 'is_active'>>
+type Updates = Partial<Pick<UserProfile, 'role' | 'division' | 'is_active' | 'service_zip_codes'>>
 
 export default function Team() {
     const { session } = useAuth()
@@ -104,6 +104,27 @@ export default function Team() {
                                     </HStack>
                                 )}
                             </HStack>
+
+                            {!isSelf && (
+                                <HStack mt="3" gap="2">
+                                    <Text fontSize="sm" color="gray.500" flexShrink="0">Service zip codes</Text>
+                                    <Input
+                                        size="sm"
+                                        maxW="sm"
+                                        placeholder="e.g. 78701, 78702, 78703"
+                                        defaultValue={(member.service_zip_codes ?? []).join(', ')}
+                                        onBlur={(e) => {
+                                            const zips = e.target.value.split(',').map((z) => z.trim()).filter(Boolean)
+                                            const current = member.service_zip_codes ?? []
+                                            if (zips.join(',') === current.join(',')) return
+                                            updateMutation.mutate({
+                                                id: member.id,
+                                                updates: { service_zip_codes: zips.length > 0 ? zips : null },
+                                            })
+                                        }}
+                                    />
+                                </HStack>
+                            )}
                         </Box>
                     )
                 })}
