@@ -37,6 +37,12 @@ export default function Dashboard() {
                     </RouterLink>
                 )}
 
+                {profile && ['service_technician', 'comfort_advisor', 'install_crew_lead', 'install_helper'].includes(profile.role) && (
+                    <RouterLink to="/tech/jobs">
+                        <Button variant="surface" alignSelf="start">My jobs</Button>
+                    </RouterLink>
+                )}
+
                 {profile && (profile.role === 'owner' || profile.role === 'gm') && (
                     <RouterLink to="/team">
                         <Button variant="surface" alignSelf="start">Team</Button>
