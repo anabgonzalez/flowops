@@ -1,3 +1,4 @@
+import { Link as RouterLink } from 'react-router-dom'
 import { Badge, Box, Button, Heading, Stack, Text } from '@chakra-ui/react'
 import { useAuth } from '../context/AuthContext'
 import { signOut } from '../lib/auth'
@@ -25,6 +26,10 @@ export default function Dashboard() {
                         <Text mt="3" color="gray.500">Loading profile…</Text>
                     )}
                 </Box>
+
+                <RouterLink to="/booking/new">
+                    <Button colorPalette="blue" alignSelf="start">New booking</Button>
+                </RouterLink>
 
                 <Button onClick={() => signOut()} variant="outline" alignSelf="start">
                     Sign out
