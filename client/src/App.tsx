@@ -2,7 +2,9 @@ import { Routes, Route } from 'react-router-dom'
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import NewBooking from './pages/NewBooking'
+import Team from './pages/Team'
 import ProtectedRoute from './components/ProtectedRoute'
+import RequireRole from './components/RequireRole'
 
 function App() {
   return (
@@ -21,6 +23,16 @@ function App() {
         element={
           <ProtectedRoute>
             <NewBooking />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team"
+        element={
+          <ProtectedRoute>
+            <RequireRole roles={['owner', 'gm']}>
+              <Team />
+            </RequireRole>
           </ProtectedRoute>
         }
       />

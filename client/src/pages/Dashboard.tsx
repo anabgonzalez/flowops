@@ -31,6 +31,12 @@ export default function Dashboard() {
                     <Button colorPalette="blue" alignSelf="start">New booking</Button>
                 </RouterLink>
 
+                {profile && (profile.role === 'owner' || profile.role === 'gm') && (
+                    <RouterLink to="/team">
+                        <Button variant="surface" alignSelf="start">Team</Button>
+                    </RouterLink>
+                )}
+
                 <Button onClick={() => signOut()} variant="surface" alignSelf="start">
                     Sign out
                 </Button>

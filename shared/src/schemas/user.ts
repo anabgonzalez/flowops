@@ -27,6 +27,7 @@ export type Division = z.infer<typeof divisionSchema>
 export const userProfileSchema = z.object({
     id: z.string().uuid(),
     full_name: z.string(),
+    email: z.string().email(),
     phone: z.string().nullable(),
     role: userRoleSchema,
     division: divisionSchema.nullable(),
