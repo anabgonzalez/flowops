@@ -1,2 +1,5 @@
 export * from "./schemas/health.js"
 export * from "./schemas/user.js"
+export * from "./schemas/domain.js"
+export * from "./schemas/booking.js"
+export * from "./rules/jobTypeCapability.js"
