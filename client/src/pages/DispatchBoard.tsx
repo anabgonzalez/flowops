@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Link as RouterLink } from 'react-router-dom'
+import { Link as RouterLink, useSearchParams } from 'react-router-dom'
 import { DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Box, Button, HStack, Text } from '@chakra-ui/react'
+import { Box, Button, HStack, Input, Text } from '@chakra-ui/react'
 import { laneForJob, type DispatchJob, type DispatchLane } from '@flowops/shared'
 import {
-    listTodaysJobs, laneJobs, emergencyUnassignedJobs,
+    listJobsForDate, laneJobs, emergencyUnassignedJobs,
     assignTech, sendEtaNotification, moveJobToLane,
 } from '../lib/dispatch'
 import DispatchLaneColumn from '../components/dispatch/DispatchLaneColumn'
@@ -20,9 +20,41 @@ const LANES: { id: DispatchLane; title: string }[] = [
     { id: 'complete', title: 'Complete' },
 ]
 
+function todayKey(): string {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function dateFromKey(key: string): Date {
+    const [year, month, day] = key.split('-').map(Number)
+    return new Date(year, month - 1, day)
+}
+
+function addDays(key: string, delta: number): string {
+    const d = dateFromKey(key)
+    d.setDate(d.getDate() + delta)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function DispatchBoard() {
     const queryClient = useQueryClient()
-    const jobsQuery = useQuery({ queryKey: ['dispatchJobs'], queryFn: listTodaysJobs, refetchInterval: 30_000 })
+    const [searchParams, setSearchParams] = useSearchParams()
+    const dateKey = searchParams.get('date') || todayKey()
+    const isToday = dateKey === todayKey()
+
+    function setDateKey(next: string) {
+        if (next === todayKey()) {
+            setSearchParams({}, { replace: true })
+        } else {
+            setSearchParams({ date: next }, { replace: true })
+        }
+    }
+
+    const jobsQuery = useQuery({
+        queryKey: ['dispatchJobs', dateKey],
+        queryFn: () => listJobsForDate(dateFromKey(dateKey)),
+        refetchInterval: isToday ? 30_000 : false,
+    })
     const [showEmergency, setShowEmergency] = useState(false)
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
@@ -52,7 +84,7 @@ export default function DispatchBoard() {
 
     function handleDragEnd(event: DragEndEvent) {
         const { active, over } = event
-        if (!over) return
+        if (!over || !isToday) return
         const job = active.data.current?.job as DispatchJob | undefined
         if (!job) return
         const targetLane = over.id as DispatchLane
@@ -65,7 +97,7 @@ export default function DispatchBoard() {
 
     return (
         <Box maxW="7xl" mx="auto" mt="8" p="6">
-            <HStack justify="space-between" mb="4">
+            <HStack justify="space-between" mb="4" wrap="wrap" gap="3">
                 <Text fontSize="xl" fontWeight="bold">Dispatch board</Text>
                 <HStack>
                     {emergencies.length > 0 && (
@@ -79,8 +111,28 @@ export default function DispatchBoard() {
                 </HStack>
             </HStack>
 
-            {jobsQuery.isLoading && <Text color="gray.500">Loading today's jobs…</Text>}
-            {jobsQuery.isError && <Text color="red.500">Couldn't load today's jobs.</Text>}
+            <HStack mb="4" gap="2">
+                <Button size="sm" variant="surface" onClick={() => setDateKey(addDays(dateKey, -1))}>← Prev day</Button>
+                <Input
+                    type="date"
+                    size="sm"
+                    width="170px"
+                    value={dateKey}
+                    onChange={(e) => e.target.value && setDateKey(e.target.value)}
+                />
+                <Button size="sm" variant="surface" onClick={() => setDateKey(addDays(dateKey, 1))}>Next day →</Button>
+                {!isToday && (
+                    <Button size="sm" variant="surface" onClick={() => setDateKey(todayKey())}>Jump to today</Button>
+                )}
+                {!isToday && (
+                    <Text fontSize="sm" color="gray.500">
+                        Pre-planning view — drag-and-drop and "On my way" texts are only available on today's board.
+                    </Text>
+                )}
+            </HStack>
+
+            {jobsQuery.isLoading && <Text color="gray.500">Loading jobs…</Text>}
+            {jobsQuery.isError && <Text color="red.500">Couldn't load jobs for this day.</Text>}
 
             {showEmergency && (
                 <EmergencyPanel
@@ -103,7 +155,8 @@ export default function DispatchBoard() {
                                 <JobCard
                                     key={job.id}
                                     job={job}
-                                    draggable={lane.id !== 'unassigned'}
+                                    draggable={lane.id !== 'unassigned' && isToday}
+                                    isToday={isToday}
                                     onAssign={(technicianId) => assignMutation.mutate({ jobId: job.id, technicianId })}
                                     assigning={assignMutation.isPending}
                                     onSendEta={() => etaMutation.mutate(job.id)}

@@ -14,8 +14,10 @@ const JOB_COLUMNS = `
     job_assignments ( technician_id, is_lead, user_profiles ( full_name ) )
 `
 
-function todayRange(): { startISO: string; endISO: string } {
-    const start = new Date()
+/** Local-midnight-to-midnight range for the given calendar day (defaults to
+ * today), used to scope both the dispatch board and a tech's today-job count. */
+function dayRange(date: Date = new Date()): { startISO: string; endISO: string } {
+    const start = new Date(date)
     start.setHours(0, 0, 0, 0)
     const end = new Date(start)
     end.setDate(end.getDate() + 1)
@@ -71,10 +73,10 @@ function toDispatchJob(row: RawJobRow): DispatchJob {
     })
 }
 
-/** Today's jobs for the dispatch board -- on_hold/cancelled are excluded,
- * they don't belong on a same-day board. */
-export async function listTodaysJobs(): Promise<DispatchJob[]> {
-    const { startISO, endISO } = todayRange()
+/** Jobs scheduled on the given day for the dispatch board -- on_hold/cancelled
+ * are excluded, they don't belong on a same-day board. */
+export async function listJobsForDate(date: Date): Promise<DispatchJob[]> {
+    const { startISO, endISO } = dayRange(date)
     const { data, error } = await supabase
         .from('jobs')
         .select(JOB_COLUMNS)
@@ -98,7 +100,7 @@ async function todaysJobCounts(technicianIds: string[]): Promise<Map<string, num
     const counts = new Map<string, number>()
     if (technicianIds.length === 0) return counts
 
-    const { startISO, endISO } = todayRange()
+    const { startISO, endISO } = dayRange()
     const { data, error } = await supabase
         .from('job_assignments')
         .select('technician_id, jobs!inner(scheduled_start, status)')

@@ -8,6 +8,7 @@ import AssignTechPicker from './AssignTechPicker'
 interface Props {
     job: DispatchJob
     draggable: boolean
+    isToday: boolean
     onAssign: (technicianId: string) => void
     assigning: boolean
     onSendEta: () => void
@@ -19,7 +20,7 @@ function formatTime(iso: string | null): string {
     return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
 }
 
-export default function JobCard({ job, draggable, onAssign, assigning, onSendEta, sendingEta }: Props) {
+export default function JobCard({ job, draggable, isToday, onAssign, assigning, onSendEta, sendingEta }: Props) {
     const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
         id: job.id,
         data: { job },
@@ -28,7 +29,9 @@ export default function JobCard({ job, draggable, onAssign, assigning, onSendEta
 
     const accent = JOB_TYPE_COLOR[job.job_type]
     const isEmergency = job.priority === 'emergency'
-    const canNotify = job.assignments.length > 0 && job.status !== 'in_progress' && job.status !== 'completed'
+    // "On my way" only makes sense for a job happening today -- texting it
+    // for a day being pre-planned would be premature and misleading.
+    const canNotify = isToday && job.assignments.length > 0 && job.status !== 'in_progress' && job.status !== 'completed'
 
     return (
         <Box
