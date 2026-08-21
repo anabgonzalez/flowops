@@ -31,6 +31,12 @@ export default function Dashboard() {
                     <Button colorPalette="blue" alignSelf="start">New booking</Button>
                 </RouterLink>
 
+                {profile && ['owner', 'gm', 'office_manager', 'dispatcher'].includes(profile.role) && (
+                    <RouterLink to="/dispatch">
+                        <Button variant="surface" alignSelf="start">Dispatch board</Button>
+                    </RouterLink>
+                )}
+
                 {profile && (profile.role === 'owner' || profile.role === 'gm') && (
                     <RouterLink to="/team">
                         <Button variant="surface" alignSelf="start">Team</Button>
