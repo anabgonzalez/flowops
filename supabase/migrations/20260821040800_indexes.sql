@@ -1,0 +1,11 @@
+create index idx_property_customers_customer_end on property_customers(customer_id, end_date);
+create index idx_equipment_property on equipment(property_id);
+create index idx_jobs_property on jobs(property_id);
+create index idx_jobs_customer on jobs(customer_id);
+create index idx_jobs_status_scheduled_start on jobs(status, scheduled_start);
+create index idx_jobs_job_type on jobs(job_type);
+create index idx_jobs_parent_job on jobs(parent_job_id) where parent_job_id is not null;
+create index idx_job_assignments_technician on job_assignments(technician_id);
+create index idx_invoices_status on invoices(status);
+create index idx_invoices_customer on invoices(customer_id);
+create index idx_memberships_active_customer on memberships(customer_id) where status = 'active';
