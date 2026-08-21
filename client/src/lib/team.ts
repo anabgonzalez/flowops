@@ -1,7 +1,7 @@
 import { userProfileSchema, type UserProfile, type UserRole, type Division } from '@flowops/shared'
 import { supabase } from './supabase'
 
-const PROFILE_COLUMNS = 'id, full_name, phone, role, division, is_active, created_at'
+const PROFILE_COLUMNS = 'id, full_name, email, phone, role, division, is_active, created_at'
 
 export async function listTeamMembers(): Promise<UserProfile[]> {
     const { data, error } = await supabase

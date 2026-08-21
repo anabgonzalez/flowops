@@ -45,6 +45,7 @@ export default function Team() {
                                         {member.full_name}
                                         {isSelf && <Badge ml="2" colorPalette="blue">You</Badge>}
                                     </Text>
+                                    <Text fontSize="sm" color="gray.500">{member.email}</Text>
                                     {member.phone && <Text fontSize="sm" color="gray.500">{member.phone}</Text>}
                                     {!member.is_active && <Badge colorPalette="red" mt="1">Inactive</Badge>}
                                 </Box>
