@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import {
     dispatchJobSchema, rankedTechSchema, laneForJob,
     type DispatchJob, type RankedTech, type JobType, type DispatchLane,
@@ -199,6 +200,25 @@ export interface SendEtaResult {
  * inline instead of a raw error. */
 export async function sendEtaNotification(jobId: string): Promise<SendEtaResult> {
     const { data, error } = await supabase.functions.invoke('send-eta-sms', { body: { job_id: jobId } })
-    if (error) throw error
+    if (error) {
+        // send-eta-sms deliberately returns non-2xx statuses for expected
+        // failures (409 already-notified, 501 not-configured, etc.) with a
+        // descriptive { ok:false, message } body -- but supabase-js's
+        // functions.invoke() treats any non-2xx as a FunctionsHttpError and
+        // drops the body into `data`, not `error`. Recover it from the raw
+        // Response on error.context so the real reason reaches the UI
+        // instead of a generic "couldn't send" message.
+        if (error instanceof FunctionsHttpError) {
+            try {
+                const body = await error.context.json()
+                if (body && typeof body.message === 'string') {
+                    return { ok: false, message: body.message }
+                }
+            } catch {
+                // fall through to throwing the original error
+            }
+        }
+        throw error
+    }
     return data as SendEtaResult
 }
