@@ -12,7 +12,7 @@ FlowOps is a streamlined internal command center built for small service busines
 
 - **Frontend:** React, TailwindCSS
 - **Backend:** Node.js, Express
-- **Database:** MongoDB (Mongoose)
+- **Database:** PostgreSQL via Supabase
 - **Auth:** JWT (or your choice)
 - **Hosting:** (to be added — e.g., Vercel, Render, etc.)
 
@@ -21,7 +21,7 @@ FlowOps is a streamlined internal command center built for small service busines
 ### Prerequisites
 
 - Node.js v18+
-- MongoDB (local or cloud)
+- A Supabase project (or any PostgreSQL instance)
 
 ### Installation
 

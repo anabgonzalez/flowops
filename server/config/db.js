@@ -1,11 +1,24 @@
-import mongoose from "mongoose"
+import pg from "pg"
+import dotenv from "dotenv"
+import path from "path"
+import { fileURLToPath } from "url"
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+dotenv.config({ path: path.resolve(__dirname, "../../.env") })
+
+const { Pool } = pg
+
+export const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+})
 
 export const connectDB = async () => {
     try {
-        const conn = await mongoose.connect(process.env.MONGO_URI);
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
+        const { rows } = await pool.query("SELECT now()")
+        console.log(`Postgres connected: ${rows[0].now}`)
     } catch (error) {
-        console.log(`Error: ${error.message}`);
-        process.exit(1); // process code 1 means exit with failure, 0 means success
+        console.log(`Error: ${error.message}`)
+        process.exit(1)
     }
 }
