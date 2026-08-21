@@ -34,7 +34,7 @@ export default function NewBooking() {
             <HStack justify="space-between" mb="6">
                 <Text fontSize="xl" fontWeight="bold">New booking</Text>
                 <RouterLink to="/">
-                    <Button variant="plain" size="sm">Back to dashboard</Button>
+                    <Button variant="surface" size="sm">Back to dashboard</Button>
                 </RouterLink>
             </HStack>
 
